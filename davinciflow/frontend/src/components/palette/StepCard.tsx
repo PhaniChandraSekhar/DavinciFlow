@@ -4,9 +4,9 @@ import { cn } from '../../utils/cn';
 import { StepGlyph } from '../stepIcons';
 
 const accentClasses = {
-  source: 'border-l-brand.source',
-  transform: 'border-l-brand.transform',
-  sink: 'border-l-brand.sink'
+  source: 'border-l-blue-500',
+  transform: 'border-l-purple-500',
+  sink: 'border-l-emerald-500'
 };
 
 interface StepCardProps {
