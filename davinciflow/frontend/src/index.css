@@ -79,6 +79,21 @@ body {
   stroke-width: 2px;
 }
 
+.react-flow__background {
+  opacity: 0.55;
+}
+
+.react-flow__handle {
+  width: 12px;
+  height: 12px;
+  border-width: 2px;
+  background: #0f172a;
+}
+
+.react-flow__minimap-mask {
+  fill: rgba(15, 23, 42, 0.38);
+}
+
 .react-flow__attribution {
   background: rgba(15, 23, 42, 0.75) !important;
   color: rgb(148 163 184) !important;

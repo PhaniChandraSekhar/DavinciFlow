@@ -10,7 +10,6 @@ interface RunnerEvent<T> {
 }
 
 export function usePipelineRunner() {
-  const pipelineId = usePipelineStore((state) => state.pipelineId);
   const { startRun, appendLog, completeRun, failRun } = useExecutionStore();
   const socketRef = useRef<ReturnType<typeof createLogsWebSocket> | null>(null);
 
@@ -22,7 +21,9 @@ export function usePipelineRunner() {
     []
   );
 
-  async function handleRun() {
+  async function handleRun(pipelineIdOverride?: string) {
+    const pipelineId = pipelineIdOverride ?? usePipelineStore.getState().pipelineId;
+
     if (!pipelineId) {
       return;
     }

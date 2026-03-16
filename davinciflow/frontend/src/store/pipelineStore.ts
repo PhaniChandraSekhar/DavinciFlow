@@ -9,6 +9,9 @@ interface PipelineStore {
   pipelineName: string;
   pipelineId: string | null;
   isDirty: boolean;
+  setNodes: (nodes: PipelineNode[]) => void;
+  setEdges: (edges: PipelineEdge[]) => void;
+  setPipelineName: (name: string) => void;
   addNode: (node: PipelineNode) => void;
   removeNode: (nodeId: string) => void;
   updateNodeConfig: (
@@ -30,6 +33,9 @@ export const usePipelineStore = create<PipelineStore>((set) => ({
   pipelineName: 'Untitled Pipeline',
   pipelineId: null,
   isDirty: false,
+  setNodes: (nodes) => set({ nodes, isDirty: true }),
+  setEdges: (edges) => set({ edges, isDirty: true }),
+  setPipelineName: (pipelineName) => set({ pipelineName, isDirty: true }),
   addNode: (node) =>
     set((state) => ({
       nodes: [...state.nodes, node],
@@ -62,21 +68,33 @@ export const usePipelineStore = create<PipelineStore>((set) => ({
       isDirty: true
     })),
   addEdge: (connection) =>
-    set((state) => ({
-      edges: [
-        ...state.edges,
-        {
-          id:
-            'id' in connection && connection.id
-              ? connection.id
-              : `edge-${connection.source}-${connection.target}`,
-          source: connection.source,
-          target: connection.target,
-          animated: true
-        }
-      ],
-      isDirty: true
-    })),
+    set((state) => {
+      if (!connection.source || !connection.target) {
+        return state;
+      }
+
+      const edgeId =
+        'id' in connection && connection.id
+          ? connection.id
+          : `edge-${connection.source}-${connection.target}`;
+
+      if (state.edges.some((edge) => edge.id === edgeId)) {
+        return state;
+      }
+
+      return {
+        edges: [
+          ...state.edges,
+          {
+            id: edgeId,
+            source: connection.source,
+            target: connection.target,
+            animated: true
+          }
+        ],
+        isDirty: true
+      };
+    }),
   removeEdge: (edgeId) =>
     set((state) => ({
       edges: state.edges.filter((edge) => edge.id !== edgeId),

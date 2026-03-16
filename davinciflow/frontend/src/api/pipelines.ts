@@ -37,6 +37,7 @@ export async function getPipeline(id: string) {
 }
 
 export async function savePipeline(pipeline: Pipeline) {
+  const isExistingPipeline = Boolean(pipeline.id);
   const payload = {
     ...pipeline,
     id: pipeline.id ?? crypto.randomUUID(),
@@ -44,7 +45,7 @@ export async function savePipeline(pipeline: Pipeline) {
   };
 
   try {
-    const response = payload.id
+    const response = isExistingPipeline
       ? await apiClient.put<Pipeline>(`/pipelines/${payload.id}`, payload)
       : await apiClient.post<Pipeline>('/pipelines', payload);
 

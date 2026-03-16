@@ -1,3 +1,5 @@
+import type { RunStatus } from './execution';
+
 export type StepCategory = 'source' | 'transform' | 'sink';
 
 export interface StepConfigFieldSchema {
@@ -29,6 +31,7 @@ export interface PipelineNodeData {
   category: StepCategory;
   definition: StepDefinition;
   config: Record<string, string | number | boolean>;
+  status?: RunStatus;
 }
 
 export interface PipelineNode {
