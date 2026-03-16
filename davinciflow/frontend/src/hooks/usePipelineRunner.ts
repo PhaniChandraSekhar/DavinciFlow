@@ -1,0 +1,71 @@
+import { useEffect, useRef } from 'react';
+import { createLogsWebSocket, runPipeline } from '../api/execution';
+import { useExecutionStore } from '../store/executionStore';
+import { usePipelineStore } from '../store/pipelineStore';
+import type { PipelineRun, RunLog } from '../types/execution';
+
+interface RunnerEvent<T> {
+  type: 'log' | 'run.complete' | 'run.failed';
+  payload: T;
+}
+
+export function usePipelineRunner() {
+  const pipelineId = usePipelineStore((state) => state.pipelineId);
+  const { startRun, appendLog, completeRun, failRun } = useExecutionStore();
+  const socketRef = useRef<ReturnType<typeof createLogsWebSocket> | null>(null);
+
+  useEffect(
+    () => () => {
+      socketRef.current?.close();
+      socketRef.current = null;
+    },
+    []
+  );
+
+  async function handleRun() {
+    if (!pipelineId) {
+      return;
+    }
+
+    socketRef.current?.close();
+    const run = await runPipeline(pipelineId);
+    startRun(run);
+    appendLog({
+      id: crypto.randomUUID(),
+      run_id: run.id,
+      timestamp: new Date().toISOString(),
+      level: 'INFO',
+      message: 'Pipeline run queued.'
+    });
+
+    const socket = createLogsWebSocket(run.id);
+    socketRef.current = socket;
+
+    const onMessage = (event: Event) => {
+      const messageEvent = event as MessageEvent<string>;
+      const parsed = JSON.parse(messageEvent.data) as
+        | RunnerEvent<RunLog>
+        | RunnerEvent<PipelineRun>;
+
+      if (parsed.type === 'log') {
+        appendLog(parsed.payload as RunLog);
+      }
+
+      if (parsed.type === 'run.complete') {
+        completeRun(parsed.payload as PipelineRun);
+        socket.close();
+      }
+
+      if (parsed.type === 'run.failed') {
+        failRun(parsed.payload as PipelineRun);
+        socket.close();
+      }
+    };
+
+    socket.addEventListener('message', onMessage);
+  }
+
+  return {
+    runPipeline: handleRun
+  };
+}
