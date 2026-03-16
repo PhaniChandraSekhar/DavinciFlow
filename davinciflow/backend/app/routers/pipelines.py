@@ -51,11 +51,12 @@ async def update_pipeline(
     return PipelineRead.model_validate(pipeline)
 
 
-@router.delete("/{pipeline_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{pipeline_id}", status_code=status.HTTP_200_OK)
 async def delete_pipeline(pipeline_id: int, db: AsyncSession = Depends(get_db)) -> None:
     pipeline = await db.get(Pipeline, pipeline_id)
     if pipeline is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pipeline not found")
     await db.delete(pipeline)
     await db.commit()
+
 

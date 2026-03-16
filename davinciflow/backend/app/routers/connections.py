@@ -66,10 +66,11 @@ async def update_connection(
     return ConnectionRead.model_validate(connection)
 
 
-@router.delete("/{connection_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{connection_id}", status_code=status.HTTP_200_OK)
 async def delete_connection(connection_id: int, db: AsyncSession = Depends(get_db)) -> None:
     connection = await db.get(Connection, connection_id)
     if connection is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Connection not found")
     await db.delete(connection)
     await db.commit()
+
