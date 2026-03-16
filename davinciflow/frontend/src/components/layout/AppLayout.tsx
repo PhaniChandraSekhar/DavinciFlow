@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 
-interface AppLayoutProps {
+export interface AppLayoutProps {
   topBar: ReactNode;
   sidebar: ReactNode;
-  canvas: ReactNode;
+  children: ReactNode;
   configPanel?: ReactNode;
   logPanel?: ReactNode;
   showConfig?: boolean;
@@ -13,7 +13,7 @@ interface AppLayoutProps {
 export default function AppLayout({
   topBar,
   sidebar,
-  canvas,
+  children,
   configPanel,
   logPanel,
   showConfig = false,
@@ -26,7 +26,7 @@ export default function AppLayout({
         <aside className="flex w-[240px] shrink-0 flex-col border-r border-slate-700 bg-slate-800">
           {sidebar}
         </aside>
-        <main className="min-w-0 flex-1">{canvas}</main>
+        <main className="min-w-0 flex-1">{children}</main>
         {showConfig ? (
           <section className="flex w-[320px] shrink-0 flex-col border-l border-slate-700 bg-slate-900/90">
             {configPanel}

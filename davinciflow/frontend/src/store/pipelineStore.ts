@@ -114,5 +114,5 @@ export const usePipelineStore = create<PipelineStore>((set) => ({
   markSaved: () => set({ isDirty: false })
 }));
 
-export const selectPipelineNodes = (state: PipelineStore) => state.nodes as Node[];
-export const selectPipelineEdges = (state: PipelineStore) => state.edges as Edge[];
+export const selectPipelineNodes = (state: PipelineStore) => state.nodes;
+export const selectPipelineEdges = (state: PipelineStore) => state.edges;

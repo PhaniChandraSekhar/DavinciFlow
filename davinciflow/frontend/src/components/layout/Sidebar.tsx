@@ -3,18 +3,18 @@ import type { Pipeline } from '../../types/pipeline';
 import { cn } from '../../utils/cn';
 import { navigateTo } from '../../utils/navigation';
 
-interface SidebarProps {
-  pipelines: Pipeline[];
-  currentPipelineId: string | null;
-  onLoadPipeline: (id: string) => void;
-  onNewPipeline: () => void;
+export interface SidebarProps {
+  pipelines?: Pipeline[];
+  currentPipelineId?: string | null;
+  onLoadPipeline?: (id: string) => void;
+  onNewPipeline?: () => void;
 }
 
 export default function Sidebar({
-  pipelines,
-  currentPipelineId,
-  onLoadPipeline,
-  onNewPipeline
+  pipelines = [],
+  currentPipelineId = null,
+  onLoadPipeline = () => {},
+  onNewPipeline = () => {}
 }: SidebarProps) {
   return (
     <div className="flex flex-col border-b border-slate-700 bg-slate-800/95">

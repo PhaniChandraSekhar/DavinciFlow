@@ -7,7 +7,6 @@ import {
   BackgroundVariant,
   useReactFlow,
   type Connection,
-  type Edge,
   type NodeChange,
   type EdgeChange,
   applyNodeChanges,
@@ -16,22 +15,25 @@ import {
 import '@xyflow/react/dist/style.css';
 
 import { usePipelineStore, selectPipelineNodes, selectPipelineEdges } from '../../store/pipelineStore';
-import { categoryToNodeType, flattenStepLibrary, getDefaultStepConfig, FALLBACK_LIBRARY } from '../../api/steps';
-import type { PipelineNode, StepDefinition } from '../../types/pipeline';
+import { categoryToNodeType, getDefaultStepConfig } from '../../api/steps';
+import { useStepLibrary } from '../../hooks/useStepLibrary';
+import type { PipelineEdge, PipelineNode, StepDefinition } from '../../types/pipeline';
+import type { NodeTypes } from '@xyflow/react';
 
 import SourceNode from './SourceNode';
 import TransformNode from './TransformNode';
 import SinkNode from './SinkNode';
 
-const nodeTypes = {
-  sourceNode: SourceNode,
-  transformNode: TransformNode,
-  sinkNode: SinkNode,
+const nodeTypes: NodeTypes = {
+  sourceNode: SourceNode as NodeTypes[string],
+  transformNode: TransformNode as NodeTypes[string],
+  sinkNode: SinkNode as NodeTypes[string],
 };
 
 export default function PipelineCanvas() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
+  const { data: stepLibrary } = useStepLibrary();
 
   const nodes = usePipelineStore(selectPipelineNodes);
   const edges = usePipelineStore(selectPipelineEdges);
@@ -42,15 +44,15 @@ export default function PipelineCanvas() {
   const setEdges = usePipelineStore((s) => s.setEdges);
 
   const onNodesChange = useCallback(
-    (changes: NodeChange[]) => {
-      setNodes(applyNodeChanges(changes, nodes) as PipelineNode[]);
+    (changes: NodeChange<PipelineNode>[]) => {
+      setNodes(applyNodeChanges(changes, nodes));
     },
     [nodes, setNodes]
   );
 
   const onEdgesChange = useCallback(
-    (changes: EdgeChange[]) => {
-      setEdges(applyEdgeChanges(changes, edges) as Edge[]);
+    (changes: EdgeChange<PipelineEdge>[]) => {
+      setEdges(applyEdgeChanges(changes, edges));
     },
     [edges, setEdges]
   );
@@ -85,7 +87,9 @@ export default function PipelineCanvas() {
       const stepType = event.dataTransfer.getData('application/davinciflow-step');
       if (!stepType) return;
 
-      const allSteps = flattenStepLibrary(FALLBACK_LIBRARY);
+      const allSteps = stepLibrary
+        ? [...stepLibrary.sources, ...stepLibrary.transforms, ...stepLibrary.sinks]
+        : [];
       const definition = allSteps.find((s) => s.type === stepType) as StepDefinition | undefined;
       if (!definition) return;
 
@@ -110,7 +114,7 @@ export default function PipelineCanvas() {
 
       addNode(newNode);
     },
-    [addNode, screenToFlowPosition]
+    [addNode, screenToFlowPosition, stepLibrary]
   );
 
   return (
@@ -144,3 +148,4 @@ export default function PipelineCanvas() {
     </div>
   );
 }
+

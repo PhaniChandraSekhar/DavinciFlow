@@ -1,3 +1,4 @@
+import type { Node } from '@xyflow/react';
 import type { RunStatus } from './execution';
 
 export type StepCategory = 'source' | 'transform' | 'sink';
@@ -24,7 +25,7 @@ export interface StepDefinition {
   };
 }
 
-export interface PipelineNodeData {
+export interface PipelineNodeData extends Record<string, unknown> {
   label: string;
   stepType: string;
   description: string;
@@ -34,12 +35,7 @@ export interface PipelineNodeData {
   status?: RunStatus;
 }
 
-export interface PipelineNode {
-  id: string;
-  type: 'sourceNode' | 'transformNode' | 'sinkNode';
-  position: { x: number; y: number };
-  data: PipelineNodeData;
-}
+export type PipelineNode = Node<PipelineNodeData, 'sourceNode' | 'transformNode' | 'sinkNode'>;
 
 export interface PipelineEdge {
   id: string;

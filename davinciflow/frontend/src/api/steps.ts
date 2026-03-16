@@ -7,7 +7,7 @@ export interface StepLibrary {
   sinks: StepDefinition[];
 }
 
-const FALLBACK_LIBRARY: StepLibrary = {
+export const FALLBACK_LIBRARY: StepLibrary = {
   sources: [
     {
       type: 'postgres_source',
