@@ -1,4 +1,4 @@
-import { useCallback, useRef, type DragEvent } from 'react';
+import { useCallback, useEffect, useRef, type DragEvent } from 'react';
 import {
   ReactFlow,
   Background,
@@ -80,23 +80,16 @@ export default function PipelineCanvas() {
     event.dataTransfer.dropEffect = 'move';
   }, []);
 
-  const onDrop = useCallback(
-    (event: DragEvent) => {
-      event.preventDefault();
-
-      const stepType = event.dataTransfer.getData('application/davinciflow-step');
-      if (!stepType) return;
-
+  // Shared drop handler used by both desktop drag and mobile touch
+  const dropStep = useCallback(
+    (stepType: string, clientX: number, clientY: number) => {
       const allSteps = stepLibrary
         ? [...stepLibrary.sources, ...stepLibrary.transforms, ...stepLibrary.sinks]
         : [];
       const definition = allSteps.find((s) => s.type === stepType) as StepDefinition | undefined;
       if (!definition) return;
 
-      const position = screenToFlowPosition({
-        x: event.clientX,
-        y: event.clientY,
-      });
+      const position = screenToFlowPosition({ x: clientX, y: clientY });
 
       const newNode: PipelineNode = {
         id: `node-${Date.now()}`,
@@ -116,6 +109,31 @@ export default function PipelineCanvas() {
     },
     [addNode, screenToFlowPosition, stepLibrary]
   );
+
+  // Desktop drop
+  const onDrop = useCallback(
+    (event: DragEvent) => {
+      event.preventDefault();
+      const stepType = event.dataTransfer.getData('application/davinciflow-step');
+      if (!stepType) return;
+      dropStep(stepType, event.clientX, event.clientY);
+    },
+    [dropStep]
+  );
+
+  // Mobile touch drop — listen for custom event dispatched by StepCard
+  useEffect(() => {
+    const el = reactFlowWrapper.current;
+    if (!el) return;
+
+    function handleTouchDrop(event: Event) {
+      const { stepType, clientX, clientY } = (event as CustomEvent).detail;
+      if (stepType) dropStep(stepType, clientX, clientY);
+    }
+
+    el.addEventListener('davinciflow:touchdrop', handleTouchDrop);
+    return () => el.removeEventListener('davinciflow:touchdrop', handleTouchDrop);
+  }, [dropStep]);
 
   return (
     <div ref={reactFlowWrapper} className="h-full w-full pipeline-canvas">
@@ -148,4 +166,3 @@ export default function PipelineCanvas() {
     </div>
   );
 }
-
