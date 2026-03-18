@@ -1,4 +1,5 @@
 from app.steps.transforms.codebook_lookup import CodebookLookupStep
+from app.steps.transforms.dbt import DbtTransformStep
 from app.steps.transforms.deduplicator import DeduplicatorStep
 from app.steps.transforms.field_mapper import FieldMapperStep
 from app.steps.transforms.filter_rows import FilterRowsStep
@@ -11,6 +12,7 @@ from app.steps.transforms.unit_converter import UnitConverterStep
 
 __all__ = [
     "CodebookLookupStep",
+    "DbtTransformStep",
     "DeduplicatorStep",
     "FieldMapperStep",
     "FilterRowsStep",
