@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "http://srv1164218.hstgr.cloud:8000/api/:path*"
+      "destination": "http://72.61.231.203:8000/api/:path*"
     }
   ]
 }
