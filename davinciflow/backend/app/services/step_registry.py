@@ -26,6 +26,7 @@ from app.steps.transforms import (
 )
 
 STEP_CLASSES: list[type[BaseStep]] = [
+    AirbyteSourceStep,
     CSVInputStep,
     RestAPIStep,
     JDBCTableStep,
