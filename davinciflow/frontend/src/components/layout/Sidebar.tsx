@@ -2,6 +2,29 @@ import { FolderPlus, Link2, Workflow } from 'lucide-react';
 import type { Pipeline } from '../../types/pipeline';
 import { cn } from '../../utils/cn';
 import { navigateTo } from '../../utils/navigation';
+import { usePipelineStore } from '../../store/pipelineStore';
+
+function RunStatusDot({ pipelineId }: { pipelineId: string }) {
+  const status = usePipelineStore((s) => s.pipelineRunStatus[pipelineId] ?? 'never');
+  const styles: Record<string, string> = {
+    never: 'bg-slate-600',
+    running: 'bg-yellow-400 animate-pulse',
+    success: 'bg-green-400',
+    failed: 'bg-red-400'
+  };
+  const titles: Record<string, string> = {
+    never: 'Never run',
+    running: 'Running',
+    success: 'Last run succeeded',
+    failed: 'Last run failed'
+  };
+  return (
+    <span
+      className={cn('inline-block h-2 w-2 flex-shrink-0 rounded-full', styles[status])}
+      title={titles[status]}
+    />
+  );
+}
 
 export interface SidebarProps {
   pipelines?: Pipeline[];
@@ -54,7 +77,10 @@ export default function Sidebar({
                     : 'border-slate-700 bg-slate-900/70 text-slate-300 hover:border-slate-500 hover:bg-slate-900'
                 )}
               >
-                <div className="truncate text-sm font-semibold">{pipeline.name}</div>
+                <div className="flex items-center gap-2">
+                  {pipeline.id && <RunStatusDot pipelineId={pipeline.id} />}
+                  <span className="truncate text-sm font-semibold">{pipeline.name}</span>
+                </div>
                 <div className="mt-1 text-xs text-slate-500">
                   {pipeline.updated_at
                     ? new Date(pipeline.updated_at).toLocaleString()

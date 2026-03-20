@@ -29,6 +29,7 @@ export function usePipelineRunner() {
     }
 
     socketRef.current?.close();
+    usePipelineStore.getState().setRunStatus(pipelineId, 'running');
     const run = await runPipeline(pipelineId);
     startRun(run);
     appendLog({
@@ -54,11 +55,13 @@ export function usePipelineRunner() {
 
       if (parsed.type === 'run.complete') {
         completeRun(parsed.payload as PipelineRun);
+        usePipelineStore.getState().setRunStatus(pipelineId, 'success');
         socket.close();
       }
 
       if (parsed.type === 'run.failed') {
         failRun(parsed.payload as PipelineRun);
+        usePipelineStore.getState().setRunStatus(pipelineId, 'failed');
         socket.close();
       }
     };

@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, LoaderCircle } from 'lucide-react';
+import { ChevronDown, ChevronRight, LoaderCircle, Zap } from 'lucide-react';
 import { useStepLibrary } from '../../hooks/useStepLibrary';
 import type { StepDefinition } from '../../types/pipeline';
 import StepCard from './StepCard';
+import { usePipelineStore } from '../../store/pipelineStore';
 
 const sectionMeta = [
   { key: 'sources', label: 'Sources' },
@@ -12,6 +13,7 @@ const sectionMeta = [
 
 export default function StepPalette() {
   const { data, isLoading } = useStepLibrary();
+  const loadTemplate = usePipelineStore((s) => s.loadTemplate);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     sources: true,
     transforms: true,
@@ -33,6 +35,35 @@ export default function StepPalette() {
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+        {/* Quick-start templates */}
+        <div className="mb-3 rounded-2xl border border-indigo-700/50 bg-indigo-950/40">
+          <div className="flex items-center gap-2 px-4 py-3">
+            <Zap className="h-4 w-4 text-indigo-400" />
+            <div>
+              <div className="text-sm font-semibold text-slate-100">Templates</div>
+              <div className="text-xs text-slate-500">Load a pre-built pipeline</div>
+            </div>
+          </div>
+          <div className="space-y-2 border-t border-indigo-700/30 px-3 py-3">
+            <button
+              type="button"
+              onClick={() => loadTemplate('ecommerce')}
+              className="w-full rounded-xl border border-indigo-700/40 bg-indigo-900/30 px-3 py-2 text-left text-sm text-indigo-200 transition hover:bg-indigo-900/60"
+            >
+              <div className="font-medium">E-Commerce Analytics</div>
+              <div className="text-xs text-indigo-400/70">Faker → DuckDB → dbt transforms</div>
+            </button>
+            <button
+              type="button"
+              onClick={() => loadTemplate('csv')}
+              className="w-full rounded-xl border border-slate-700 bg-slate-900/40 px-3 py-2 text-left text-sm text-slate-300 transition hover:bg-slate-900/70"
+            >
+              <div className="font-medium">CSV Pipeline</div>
+              <div className="text-xs text-slate-500">CSV input → CSV output</div>
+            </button>
+          </div>
+        </div>
+
         {isLoading ? (
           <div className="flex items-center justify-center gap-2 rounded-2xl border border-slate-700 bg-slate-900/60 px-4 py-8 text-sm text-slate-400">
             <LoaderCircle className="h-4 w-4 animate-spin" />
