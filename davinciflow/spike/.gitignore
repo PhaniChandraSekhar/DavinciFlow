@@ -1,0 +1,12 @@
+# Spike-specific ignores
+*.duckdb
+*.duckdb.wal
+.venv/
+venv/
+__pycache__/
+*.pyc
+dbt_project/target/
+dbt_project/logs/
+dbt_project/.user.yml
+config/__pycache__/
+.cache/

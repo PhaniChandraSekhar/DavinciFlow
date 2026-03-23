@@ -1,0 +1,8 @@
+davinciflow:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "C:/Users/user/.openclaw/workspace/projects/davinciflow-spike/davinciflow.duckdb"
+      schema: transforms
+      threads: 4

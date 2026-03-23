@@ -1,0 +1,27 @@
+version: 2
+
+models:
+  - name: revenue_summary
+    description: >
+      Aggregates fake e-commerce purchase data loaded by PyAirbyte.
+      Groups by product_id to show total revenue and order count per product.
+    columns:
+      - name: product_id
+        description: Product identifier
+      - name: total_orders
+        description: Number of purchases for this product
+      - name: total_revenue
+        description: Sum of purchase prices for this product
+      - name: avg_order_value
+        description: Average purchase price
+
+  - name: user_purchase_summary
+    description: >
+      Aggregates purchases per user — shows top buyers.
+    columns:
+      - name: user_id
+        description: User identifier
+      - name: total_orders
+        description: Number of purchases by this user
+      - name: total_spent
+        description: Total amount spent by this user
