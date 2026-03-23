@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from datetime import datetime
 from typing import Any
 
@@ -13,7 +14,7 @@ class PipelineCreate(BaseModel):
 
 
 class PipelineRead(PipelineCreate):
-    id: int
+    id: uuid.UUID
     created_at: datetime
     updated_at: datetime
 
@@ -23,4 +24,3 @@ class PipelineRead(PipelineCreate):
 class PipelineList(BaseModel):
     items: list[PipelineRead]
     total: int
-

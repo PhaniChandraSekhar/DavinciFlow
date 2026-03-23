@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from datetime import datetime
 from typing import Any
 
@@ -24,19 +25,18 @@ class RunLog(BaseModel):
 
 
 class RunRead(BaseModel):
-    id: int
-    pipeline_id: int
+    id: uuid.UUID
+    pipeline_id: uuid.UUID
     status: str
-    parameters: dict[str, Any] = Field(default_factory=dict)
-    logs: list[RunLog] = Field(default_factory=list)
-    error: str | None = None
-    started_at: datetime
+    run_log: list[RunLog] = Field(default_factory=list)
+    error_message: str | None = None
+    started_at: datetime | None = None
     completed_at: datetime | None = None
+    created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
-    @field_validator("logs", mode="before")
+    @field_validator("run_log", mode="before")
     @classmethod
     def parse_logs(cls, value: Any) -> list[dict[str, Any]]:
         return value or []
-

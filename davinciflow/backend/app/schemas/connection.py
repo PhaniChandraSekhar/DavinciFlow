@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from datetime import datetime
 from typing import Any
 
@@ -14,9 +15,8 @@ class ConnectionCreate(BaseModel):
 
 
 class ConnectionRead(ConnectionCreate):
-    id: int
+    id: uuid.UUID
     created_at: datetime
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
-

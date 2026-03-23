@@ -1,4 +1,5 @@
 from __future__ import annotations
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -38,7 +39,7 @@ async def create_connection(
 
 
 @router.get("/{connection_id}", response_model=ConnectionRead)
-async def get_connection(connection_id: int, db: AsyncSession = Depends(get_db)) -> ConnectionRead:
+async def get_connection(connection_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> ConnectionRead:
     connection = await db.get(Connection, connection_id)
     if connection is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Connection not found")
@@ -47,7 +48,7 @@ async def get_connection(connection_id: int, db: AsyncSession = Depends(get_db))
 
 @router.put("/{connection_id}", response_model=ConnectionRead)
 async def update_connection(
-    connection_id: int, payload: ConnectionCreate, db: AsyncSession = Depends(get_db)
+    connection_id: uuid.UUID, payload: ConnectionCreate, db: AsyncSession = Depends(get_db)
 ) -> ConnectionRead:
     connection = await db.get(Connection, connection_id)
     if connection is None:
@@ -67,7 +68,7 @@ async def update_connection(
 
 
 @router.delete("/{connection_id}", status_code=status.HTTP_200_OK)
-async def delete_connection(connection_id: int, db: AsyncSession = Depends(get_db)) -> None:
+async def delete_connection(connection_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> None:
     connection = await db.get(Connection, connection_id)
     if connection is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Connection not found")

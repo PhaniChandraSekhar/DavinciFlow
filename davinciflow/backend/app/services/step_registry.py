@@ -12,6 +12,7 @@ from app.steps.sources import (
     RestAPIStep,
     S3InputStep,
 )
+from app.steps.sources.airbyte import AirbyteSourceStep
 from app.steps.transforms import (
     CodebookLookupStep,
     DeduplicatorStep,
@@ -24,9 +25,11 @@ from app.steps.transforms import (
     TypeCasterStep,
     UnitConverterStep,
 )
+from app.steps.transforms.dbt import DbtTransformStep
 
 STEP_CLASSES: list[type[BaseStep]] = [
     AirbyteSourceStep,
+    DbtTransformStep,
     CSVInputStep,
     RestAPIStep,
     JDBCTableStep,

@@ -1,4 +1,5 @@
 from __future__ import annotations
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -30,7 +31,7 @@ async def create_pipeline(
 
 
 @router.get("/{pipeline_id}", response_model=PipelineRead)
-async def get_pipeline(pipeline_id: int, db: AsyncSession = Depends(get_db)) -> PipelineRead:
+async def get_pipeline(pipeline_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> PipelineRead:
     pipeline = await db.get(Pipeline, pipeline_id)
     if pipeline is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pipeline not found")
@@ -39,7 +40,7 @@ async def get_pipeline(pipeline_id: int, db: AsyncSession = Depends(get_db)) -> 
 
 @router.put("/{pipeline_id}", response_model=PipelineRead)
 async def update_pipeline(
-    pipeline_id: int, payload: PipelineCreate, db: AsyncSession = Depends(get_db)
+    pipeline_id: uuid.UUID, payload: PipelineCreate, db: AsyncSession = Depends(get_db)
 ) -> PipelineRead:
     pipeline = await db.get(Pipeline, pipeline_id)
     if pipeline is None:
@@ -52,7 +53,7 @@ async def update_pipeline(
 
 
 @router.delete("/{pipeline_id}", status_code=status.HTTP_200_OK)
-async def delete_pipeline(pipeline_id: int, db: AsyncSession = Depends(get_db)) -> None:
+async def delete_pipeline(pipeline_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> None:
     pipeline = await db.get(Pipeline, pipeline_id)
     if pipeline is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pipeline not found")

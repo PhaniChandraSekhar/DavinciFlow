@@ -61,8 +61,7 @@ class ExecutionEngine:
             run = PipelineRun(
                 pipeline_id=pipeline_id,
                 status="queued",
-                parameters=parameters,
-                logs=[],
+                run_log=[],
             )
             session.add(run)
             await session.commit()
@@ -90,8 +89,8 @@ class ExecutionEngine:
             if run is None:
                 return
             run.status = "running"
-            run.error = None
-            run.logs = []
+            run.error_message = None
+            run.run_log = []
             await session.commit()
 
         try:
@@ -170,7 +169,7 @@ class ExecutionEngine:
             if run is None:
                 return
             run.status = "completed"
-            run.logs = all_logs
+            run.run_log = all_logs
             run.completed_at = datetime.now(UTC)
             await session.commit()
 
@@ -269,7 +268,7 @@ class ExecutionEngine:
                 return
             run.status = status
             run.logs = logs
-            run.error = error
+            run.error_message = error
             await session.commit()
 
     async def _fail_run(self, run_id: int, error: str) -> None:
@@ -278,7 +277,7 @@ class ExecutionEngine:
             if run is None:
                 return
             run.status = "failed"
-            run.error = error
+            run.error_message = error
             run.completed_at = datetime.now(UTC)
             await session.commit()
         await execution_broker.publish(run_id, {"event": "status", "status": "failed", "run_id": run_id, "error": error})
@@ -311,8 +310,8 @@ class ExecutionEngine:
             if run is None:
                 return
             run.status = "failed"
-            run.logs = all_logs
-            run.error = error_message
+            run.run_log = all_logs
+            run.error_message = error_message
             run.completed_at = failed_at
             await session.commit()
         await execution_broker.publish(run_id, {"event": "log", "data": log_entry})
