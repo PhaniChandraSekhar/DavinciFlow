@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { Connection, Edge, Node } from '@xyflow/react';
-import type { Pipeline, PipelineEdge, PipelineNode } from '../types/pipeline';
+import type { ConfigValue, Pipeline, PipelineEdge, PipelineNode } from '../types/pipeline';
 
 type RunStatus = 'never' | 'running' | 'success' | 'failed';
 
@@ -19,12 +19,13 @@ interface PipelineStore {
   removeNode: (nodeId: string) => void;
   updateNodeConfig: (
     nodeId: string,
-    config: Record<string, string | number | boolean>
+    config: Record<string, ConfigValue>
   ) => void;
   addEdge: (connection: Connection | Edge | PipelineEdge) => void;
   removeEdge: (edgeId: string) => void;
   setSelectedNode: (nodeId: string | null) => void;
   setPipeline: (pipeline: Pipeline) => void;
+  resetPipeline: () => void;
   markDirty: () => void;
   markSaved: () => void;
   loadTemplate: (templateId: 'ecommerce' | 'csv') => void;
@@ -38,7 +39,7 @@ const makeNode = (
   label: string,
   description: string,
   category: 'source' | 'transform' | 'sink',
-  config: Record<string, string | number | boolean>,
+  config: Record<string, ConfigValue>,
   position: { x: number; y: number }
 ): PipelineNode => ({
   id,
@@ -70,6 +71,8 @@ const TEMPLATES: Record<string, { nodes: PipelineNode[]; edges: PipelineEdge[]; 
         'Extract fake e-commerce data via PyAirbyte', 'source',
         {
           source_name: 'source-faker',
+          streams: ['products', 'purchases', 'users'],
+          config_dict: { count: 500, seed: 42, parallelism: 1 },
           destination: 'duckdb',
           duckdb_path: '/tmp/davinciflow_cache.duckdb'
         },
@@ -79,9 +82,11 @@ const TEMPLATES: Record<string, { nodes: PipelineNode[]; edges: PipelineEdge[]; 
         'tpl-2', 'transformNode', 'transform.dbt', 'Revenue Summary (dbt)',
         'Run dbt transforms to aggregate revenue', 'transform',
         {
-          project_dir: '/app/dbt_project',
-          profiles_dir: '/app/dbt_project',
+          dbt_project_dir: '/app/spike/dbt_project',
+          profiles_dir: '/app/spike/dbt_project',
           select: 'transforms',
+          target: 'dev',
+          output_model: 'transforms.revenue_summary',
           duckdb_path: '/tmp/davinciflow_cache.duckdb'
         },
         { x: 420, y: 150 }
@@ -192,6 +197,15 @@ export const usePipelineStore = create<PipelineStore>((set) => ({
       selectedNodeId: null,
       pipelineName: pipeline.name,
       pipelineId: pipeline.id ?? null,
+      isDirty: false
+    }),
+  resetPipeline: () =>
+    set({
+      nodes: [],
+      edges: [],
+      selectedNodeId: null,
+      pipelineName: 'Untitled Pipeline',
+      pipelineId: null,
       isDirty: false
     }),
   markDirty: () => set({ isDirty: true }),

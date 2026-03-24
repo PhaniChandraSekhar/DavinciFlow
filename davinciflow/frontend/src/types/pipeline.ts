@@ -2,6 +2,13 @@ import type { Node } from '@xyflow/react';
 import type { RunStatus } from './execution';
 
 export type StepCategory = 'source' | 'transform' | 'sink';
+export type ConfigValue =
+  | string
+  | number
+  | boolean
+  | null
+  | ConfigValue[]
+  | { [key: string]: ConfigValue };
 
 export interface StepConfigFieldSchema {
   type: 'string' | 'number' | 'boolean' | 'enum' | 'connection';
@@ -31,7 +38,7 @@ export interface PipelineNodeData extends Record<string, unknown> {
   description: string;
   category: StepCategory;
   definition: StepDefinition;
-  config: Record<string, string | number | boolean>;
+  config: Record<string, ConfigValue>;
   status?: RunStatus;
 }
 
@@ -51,4 +58,6 @@ export interface Pipeline {
   nodes: PipelineNode[];
   edges: PipelineEdge[];
   updated_at?: string;
+  latest_run_status?: 'pending' | 'running' | 'success' | 'failed';
+  latest_run_at?: string;
 }

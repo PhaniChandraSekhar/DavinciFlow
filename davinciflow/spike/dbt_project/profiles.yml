@@ -3,6 +3,6 @@ davinciflow:
   outputs:
     dev:
       type: duckdb
-      path: "C:/Users/user/.openclaw/workspace/projects/davinciflow-spike/davinciflow.duckdb"
+      path: "{{ env_var('DAVINCIFLOW_DUCKDB_PATH', '/tmp/davinciflow_cache.duckdb') }}"
       schema: transforms
       threads: 4

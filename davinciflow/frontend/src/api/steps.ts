@@ -290,7 +290,7 @@ export function categoryToNodeType(category: StepCategory) {
 
 export async function getStepLibrary() {
   try {
-    const response = await apiClient.get<StepLibrary>('/steps/library');
+    const response = await apiClient.get<StepLibrary>('/steps');
     return response.data;
   } catch {
     return FALLBACK_LIBRARY;

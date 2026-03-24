@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import asyncio
-import tempfile
+import json
 from pathlib import Path
+import subprocess
+import tempfile
 from typing import Any, Literal
 
 import pandas as pd
@@ -53,49 +55,30 @@ class AirbyteSourceStep(BaseStep):
         return await asyncio.to_thread(self._sync_extract)
 
     def _sync_extract(self) -> pd.DataFrame:
-        try:
-            import airbyte as ab
-        except ImportError as e:
-            raise RuntimeError(
-                "PyAirbyte not installed. Add 'airbyte>=0.20.0' to requirements.txt"
-            ) from e
+        runner = Path(__file__).with_name("runner.py")
+        elt_python = self.get_elt_python()
 
-        source = ab.get_source(
-            self.config.source_name,
-            config=self.config.config_dict,
-            streams=self.config.streams,
-            install_if_missing=True,
-        )
-        source.check()
+        with tempfile.TemporaryDirectory(prefix="davinciflow-airbyte-") as tmpdir:
+            tmp_path = Path(tmpdir)
+            config_path = tmp_path / "config.json"
+            output_path = tmp_path / "output.parquet"
+            config_path.write_text(self.config.model_dump_json(), encoding="utf-8")
 
-        if self.config.destination == "duckdb":
-            cache = ab.DuckDBCache(db_path=self.config.duckdb_path)
-        else:
-            cache = ab.PostgresCache(
-                host=self.config.postgres_host,
-                port=self.config.postgres_port,
-                database=self.config.postgres_database,
-                username=self.config.postgres_username,
-                password=self.config.postgres_password,
-                schema_name=self.config.postgres_schema,
+            result = subprocess.run(
+                [elt_python, str(runner), str(config_path), str(output_path)],
+                capture_output=True,
+                text=True,
+                cwd=str(tmp_path),
+                env={**__import__("os").environ, "PYTHONUTF8": "1"},
             )
 
-        result = source.read(cache=cache)
+            if result.returncode != 0:
+                raise RuntimeError(
+                    "PyAirbyte extract failed:\n"
+                    f"{result.stdout}\n{result.stderr}".strip()
+                )
 
-        # Combine all requested streams into one DataFrame with a '_stream' column
-        frames = []
-        for stream_name in self.config.streams:
-            try:
-                stream_df = result.cache.streams[stream_name].to_pandas()
-                stream_df["_stream"] = stream_name
-                frames.append(stream_df)
-            except Exception:
-                pass
+            if not output_path.exists():
+                return pd.DataFrame()
 
-        if not frames:
-            return pd.DataFrame()
-
-        combined = pd.concat(frames, ignore_index=True)
-        # Drop internal airbyte columns from the output DataFrame
-        airbyte_cols = [c for c in combined.columns if c.startswith("_airbyte_")]
-        return combined.drop(columns=airbyte_cols, errors="ignore")
+            return pd.read_parquet(output_path)

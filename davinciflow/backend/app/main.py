@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
+from app.database import init_db
 settings = get_settings()
 from app.routers import pipelines, connections, execution, steps
 
@@ -27,6 +28,11 @@ app.include_router(pipelines.router)
 app.include_router(connections.router)
 app.include_router(execution.router)
 app.include_router(steps.router)
+
+
+@app.on_event("startup")
+async def startup() -> None:
+    await init_db()
 
 
 @app.get("/")

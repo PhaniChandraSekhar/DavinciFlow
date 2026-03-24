@@ -107,7 +107,7 @@ class ExecutionEngine:
 
         for node in ordered_nodes:
             node_id = str(node["id"])
-            node_type = node["type"]
+            node_type = self._extract_step_type(node)
             step_class = get_step_class(node_type)
             if step_class is None:
                 await self._handle_step_failure(
@@ -229,6 +229,19 @@ class ExecutionEngine:
         if isinstance(data, dict) and isinstance(data.get("config"), dict):
             return data["config"]
         return {}
+
+    def _extract_step_type(self, node: dict[str, Any]) -> str:
+        data = node.get("data")
+        if isinstance(data, dict):
+            step_type = data.get("stepType")
+            if isinstance(step_type, str) and step_type:
+                return step_type
+            definition = data.get("definition")
+            if isinstance(definition, dict):
+                definition_type = definition.get("type")
+                if isinstance(definition_type, str) and definition_type:
+                    return definition_type
+        return str(node["type"])
 
     def _build_log(
         self,

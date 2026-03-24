@@ -5,6 +5,7 @@ from typing import Any
 from app.steps.base import BaseStep
 from app.steps.sinks import CSVOutputStep, KafkaProducerStep, PostgreSQLWriterStep
 from app.steps.sources import (
+    AirbyteSourceStep,
     CSVInputStep,
     JDBCTableStep,
     KafkaConsumerStep,
@@ -14,6 +15,7 @@ from app.steps.sources import (
 )
 from app.steps.transforms import (
     CodebookLookupStep,
+    DbtTransformStep,
     DeduplicatorStep,
     FieldMapperStep,
     FilterRowsStep,
@@ -43,6 +45,7 @@ STEP_CLASSES: list[type[BaseStep]] = [
     UnitConverterStep,
     RuleValidatorStep,
     GroupByStep,
+    DbtTransformStep,
     CSVOutputStep,
     PostgreSQLWriterStep,
     KafkaProducerStep,

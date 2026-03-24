@@ -34,9 +34,9 @@ export default function TopBar({
           onClick={() => navigateTo('/')}
           className="flex items-center gap-3 rounded-2xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-left transition hover:border-slate-500 hover:bg-slate-950"
         >
-          <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-brand.primary via-sky-500 to-brand.sink shadow-lg shadow-indigo-950/50">
+          <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-brand-primary via-sky-500 to-brand-sink shadow-lg shadow-indigo-950/50">
             <Workflow className="h-5 w-5 text-white" />
-            <DatabaseZap className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-slate-950 p-0.5 text-brand.sink" />
+            <DatabaseZap className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-slate-950 p-0.5 text-brand-sink" />
           </div>
           <div>
             <div className="text-sm font-semibold tracking-[0.24em] text-slate-100">DAVINCIFLOW</div>
@@ -73,7 +73,7 @@ export default function TopBar({
 
       {mode === 'designer' ? (
         <div className="flex min-w-0 items-center gap-4">
-          <label className="min-w-[280px] rounded-2xl border border-slate-700 bg-slate-950/70 px-4 py-2 focus-within:border-brand.primary">
+          <label className="min-w-[280px] rounded-2xl border border-slate-700 bg-slate-950/70 px-4 py-2 focus-within:border-brand-primary">
             <span className="mb-1 block text-[10px] uppercase tracking-[0.3em] text-slate-500">
               Pipeline Name
             </span>
@@ -104,7 +104,7 @@ export default function TopBar({
               type="button"
               onClick={() => void onRun?.()}
               disabled={!canRun || isRunning}
-              className="flex items-center gap-2 rounded-xl bg-brand.primary px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-950/50 transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+              className="flex items-center gap-2 rounded-xl bg-brand-primary px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-950/50 transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
             >
               <Play className="h-4 w-4" />
               {isRunning ? 'Running' : 'Run'}

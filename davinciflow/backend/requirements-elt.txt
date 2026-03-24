@@ -1,0 +1,4 @@
+pyarrow==17.0.0
+airbyte==0.43.0
+dbt-duckdb==1.10.1
+duckdb==1.4.3

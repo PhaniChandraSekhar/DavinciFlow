@@ -1,12 +1,9 @@
 from __future__ import annotations
 
 import asyncio
-import json
+import os
 import subprocess
-import sys
-import tempfile
 from pathlib import Path
-from typing import Any
 
 import pandas as pd
 from pydantic import BaseModel, Field
@@ -59,8 +56,10 @@ class DbtTransformStep(BaseStep):
         if not project_dir.exists():
             raise FileNotFoundError(f"dbt project dir not found: {project_dir}")
 
+        elt_python = Path(self.get_elt_python())
+        dbt_executable = elt_python.with_name("dbt")
         cmd = [
-            sys.executable, "-m", "dbt", "run",
+            str(dbt_executable if dbt_executable.exists() else elt_python), *(["run"] if dbt_executable.exists() else ["-m", "dbt.cli.main", "run"]),
             "--project-dir", str(project_dir),
             "--profiles-dir", str(profiles_dir),
             "--target", self.config.target,
@@ -72,7 +71,11 @@ class DbtTransformStep(BaseStep):
             cmd,
             capture_output=True,
             text=True,
-            env={**__import__("os").environ, "PYTHONUTF8": "1"},
+            env={
+                **os.environ,
+                "PYTHONUTF8": "1",
+                "DAVINCIFLOW_DUCKDB_PATH": self.config.duckdb_path or "/tmp/davinciflow_cache.duckdb",
+            },
         )
 
         if result.returncode != 0:

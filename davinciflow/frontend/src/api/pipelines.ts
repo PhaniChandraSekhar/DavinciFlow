@@ -6,12 +6,14 @@ const STORAGE_KEY = 'davinciflow:pipelines';
 // ── Backend DTO shapes ───────────────────────────────────────────────────────
 
 interface BackendPipeline {
-  id: string;
+  id: string | number;
   name: string;
   description?: string | null;
   pipeline_json: { nodes?: unknown[]; edges?: unknown[] };
   created_at?: string;
   updated_at?: string;
+  latest_run_status?: string | null;
+  latest_run_at?: string | null;
 }
 
 interface BackendPipelineList {
@@ -22,14 +24,27 @@ interface BackendPipelineList {
 // ── Shape converters ─────────────────────────────────────────────────────────
 
 function toFrontend(bp: BackendPipeline): Pipeline {
+  const normalizedStatus =
+    bp.latest_run_status === 'queued'
+      ? 'running'
+      : bp.latest_run_status === 'completed'
+        ? 'success'
+        : bp.latest_run_status === 'failed'
+          ? 'failed'
+          : bp.latest_run_status === 'running'
+            ? 'running'
+            : undefined;
+
   return {
-    id: bp.id,
+    id: String(bp.id),
     name: bp.name,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     nodes: (bp.pipeline_json?.nodes ?? []) as any[],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     edges: (bp.pipeline_json?.edges ?? []) as any[],
     updated_at: bp.updated_at,
+    latest_run_status: normalizedStatus,
+    latest_run_at: bp.latest_run_at ?? undefined,
   };
 }
 
@@ -59,7 +74,10 @@ function writePipelines(pipelines: Pipeline[]): void {
 
 export async function getPipelines(): Promise<Pipeline[]> {
   try {
-    const response = await apiClient.get<BackendPipelineList>('/pipelines');
+    const response = await apiClient.get<BackendPipelineList>('/pipelines', {
+      params: { _t: Date.now() },
+      headers: { 'Cache-Control': 'no-cache' },
+    });
     const items = response.data?.items ?? (response.data as unknown as BackendPipeline[]);
     return Array.isArray(items) ? items.map(toFrontend) : [];
   } catch {
@@ -71,7 +89,10 @@ export async function getPipelines(): Promise<Pipeline[]> {
 
 export async function getPipeline(id: string): Promise<Pipeline> {
   try {
-    const response = await apiClient.get<BackendPipeline>(`/pipelines/${id}`);
+    const response = await apiClient.get<BackendPipeline>(`/pipelines/${id}`, {
+      params: { _t: Date.now() },
+      headers: { 'Cache-Control': 'no-cache' },
+    });
     return toFrontend(response.data);
   } catch {
     const pipeline = readPipelines().find((item) => item.id === id);

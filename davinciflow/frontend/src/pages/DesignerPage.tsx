@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { PanelLeftOpen, PanelLeftClose } from 'lucide-react';
 import AppLayout from '../components/layout/AppLayout';
@@ -11,7 +11,9 @@ import RunPanel from '../components/execution/RunPanel';
 import { usePipelineStore } from '../store/pipelineStore';
 import { useSaveShortcut } from '../hooks/useSaveShortcut';
 import { usePipelineRunner } from '../hooks/usePipelineRunner';
-import { savePipeline } from '../api/pipelines';
+import { getPipeline, getPipelines, savePipeline } from '../api/pipelines';
+import type { Pipeline } from '../types/pipeline';
+import { useExecutionStore } from '../store/executionStore';
 
 export default function DesignerPage() {
   const nodes = usePipelineStore((s) => s.nodes);
@@ -20,30 +22,93 @@ export default function DesignerPage() {
   const pipelineId = usePipelineStore((s) => s.pipelineId);
   const selectedNodeId = usePipelineStore((s) => s.selectedNodeId);
   const markSaved = usePipelineStore((s) => s.markSaved);
+  const resetPipeline = usePipelineStore((s) => s.resetPipeline);
+  const setPipeline = usePipelineStore((s) => s.setPipeline);
+  const setPipelineName = usePipelineStore((s) => s.setPipelineName);
+  const setRunStatus = usePipelineStore((s) => s.setRunStatus);
+  const isDirty = usePipelineStore((s) => s.isDirty);
+  const isRunning = useExecutionStore((s) => s.isRunning);
 
   const { runPipeline } = usePipelineRunner();
   const [paletteOpen, setPaletteOpen] = useState(true);
+  const [savedPipelines, setSavedPipelines] = useState<Pipeline[]>([]);
+
+  async function refreshPipelines() {
+    const items = await getPipelines();
+    for (const item of items) {
+      if (item.id && item.latest_run_status) {
+        setRunStatus(item.id, item.latest_run_status === 'pending' ? 'running' : item.latest_run_status);
+      }
+    }
+    setSavedPipelines(items);
+  }
+
+  useEffect(() => {
+    void refreshPipelines();
+  }, []);
 
   const handleSave = async () => {
-    await savePipeline({
+    const saved = await savePipeline({
       id: pipelineId ?? undefined,
       name: pipelineName,
       nodes,
       edges,
     });
+    setPipeline(saved);
     markSaved();
+    await refreshPipelines();
+    return saved;
   };
 
-  useSaveShortcut(handleSave);
+  const handleLoadPipeline = async (id: string) => {
+    const pipeline = await getPipeline(id);
+    setPipeline(pipeline);
+  };
+
+  const handleNewPipeline = () => {
+    resetPipeline();
+  };
+
+  const handleRun = async () => {
+    const saved = pipelineId ? null : await handleSave();
+    const targetPipelineId = pipelineId ?? saved?.id;
+    if (!targetPipelineId) {
+      return;
+    }
+    await runPipeline(targetPipelineId);
+  };
+
+  useSaveShortcut(async () => {
+    await handleSave();
+  });
 
   return (
     <ReactFlowProvider>
       <AppLayout
-        topBar={<TopBar mode="designer" onSave={handleSave} onRun={runPipeline} />}
-        sidebar={<Sidebar />}
+        topBar={
+          <TopBar
+            mode="designer"
+            pipelineName={pipelineName}
+            onPipelineNameChange={setPipelineName}
+            onSave={async () => {
+              await handleSave();
+            }}
+            onRun={handleRun}
+            isDirty={isDirty}
+            isRunning={isRunning}
+            canRun={nodes.length > 0 && pipelineName.trim().length > 0}
+          />
+        }
+        sidebar={
+          <Sidebar
+            pipelines={savedPipelines}
+            currentPipelineId={pipelineId}
+            onLoadPipeline={handleLoadPipeline}
+            onNewPipeline={handleNewPipeline}
+          />
+        }
       >
         <div className="flex h-full overflow-hidden">
-          {/* Step Palette — collapsible on mobile */}
           <div
             className={[
               'flex flex-col border-r border-slate-700 bg-slate-800 transition-all duration-200',
@@ -53,11 +118,10 @@ export default function DesignerPage() {
             <StepPalette />
           </div>
 
-          {/* Palette toggle button */}
           <button
             type="button"
             onClick={() => setPaletteOpen((v) => !v)}
-            className="z-10 flex h-8 w-6 shrink-0 items-center justify-center self-start mt-3 rounded-r-lg border border-l-0 border-slate-700 bg-slate-800 text-slate-400 hover:text-slate-100"
+            className="z-10 mt-3 flex h-8 w-6 shrink-0 items-center justify-center self-start rounded-r-lg border border-l-0 border-slate-700 bg-slate-800 text-slate-400 hover:text-slate-100"
             title={paletteOpen ? 'Hide palette' : 'Show palette'}
           >
             {paletteOpen ? (
@@ -67,7 +131,6 @@ export default function DesignerPage() {
             )}
           </button>
 
-          {/* Canvas + Run Panel */}
           <div className="flex min-w-0 flex-1 flex-col">
             <div className="flex-1 overflow-hidden">
               <PipelineCanvas />
@@ -75,7 +138,6 @@ export default function DesignerPage() {
             <RunPanel />
           </div>
 
-          {/* Config panel — only when node selected */}
           {selectedNodeId && (
             <div className="w-[300px] min-w-[300px] shrink-0 border-l border-slate-700 bg-slate-900/90 md:w-[320px]">
               <StepConfigPanel />

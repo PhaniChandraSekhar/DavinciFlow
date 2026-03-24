@@ -30,7 +30,6 @@ export default function ConnectionsPage() {
 
   const openNew = () => {
     setEditing({
-      id: crypto.randomUUID(),
       name: '',
       type: 'postgres',
       config: {},
@@ -97,7 +96,7 @@ export default function ConnectionsPage() {
                         <Edit className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => handleDelete(conn.id)}
+                        onClick={() => conn.id && handleDelete(conn.id)}
                         className="rounded p-1 text-slate-400 hover:bg-rose-500/20 hover:text-rose-400"
                       >
                         <Trash2 className="h-4 w-4" />

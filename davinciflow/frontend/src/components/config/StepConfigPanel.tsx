@@ -1,6 +1,6 @@
 import { X } from 'lucide-react';
 import { usePipelineStore } from '../../store/pipelineStore';
-import type { StepConfigFieldSchema } from '../../types/pipeline';
+import type { ConfigValue, StepConfigFieldSchema } from '../../types/pipeline';
 import { cn } from '../../utils/cn';
 
 export default function StepConfigPanel() {
@@ -52,7 +52,7 @@ export default function StepConfigPanel() {
 interface ConfigFieldProps {
   fieldKey: string;
   schema: StepConfigFieldSchema;
-  value: string | number | boolean | undefined;
+  value: ConfigValue | undefined;
   required?: boolean;
   onChange: (value: string | number | boolean) => void;
 }

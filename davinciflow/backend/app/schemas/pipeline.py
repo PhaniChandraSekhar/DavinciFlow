@@ -16,6 +16,8 @@ class PipelineRead(PipelineCreate):
     id: int
     created_at: datetime
     updated_at: datetime
+    latest_run_status: str | None = None
+    latest_run_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -23,4 +25,3 @@ class PipelineRead(PipelineCreate):
 class PipelineList(BaseModel):
     items: list[PipelineRead]
     total: int
-

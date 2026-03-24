@@ -11,3 +11,7 @@ router = APIRouter(prefix="/api/steps", tags=["steps"])
 async def list_steps() -> dict[str, list[dict[str, object]]]:
     return build_step_catalogue()
 
+
+@router.get("/library")
+async def list_steps_library() -> dict[str, list[dict[str, object]]]:
+    return build_step_catalogue()
