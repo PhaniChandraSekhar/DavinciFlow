@@ -7,6 +7,8 @@ from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
+from app.services.dataframe_filters import filter_dataframe
+from app.services.security import quote_identifier_path
 from app.steps.base import BaseStep
 
 
@@ -34,13 +36,11 @@ class JDBCTableStep(BaseStep):
 
         clauses: list[str] = []
         params: dict[str, Any] = {}
-        if self.config.where_clause:
-            clauses.append(f"({self.config.where_clause})")
         if self.config.watermark_column and self.config.watermark_value is not None:
-            clauses.append(f"{self.config.watermark_column} >= :watermark_value")
+            clauses.append(f"{quote_identifier_path(self.config.watermark_column)} >= :watermark_value")
             params["watermark_value"] = self.config.watermark_value
 
-        query = f"SELECT * FROM {self.config.table}"
+        query = f"SELECT * FROM {quote_identifier_path(self.config.table)}"
         if clauses:
             query = f"{query} WHERE {' AND '.join(clauses)}"
 
@@ -49,7 +49,9 @@ class JDBCTableStep(BaseStep):
             async with engine.connect() as conn:
                 result = await conn.execute(text(query), params)
                 rows = result.mappings().all()
-                return pd.DataFrame(rows)
+                frame = pd.DataFrame(rows)
+                if self.config.where_clause and not frame.empty:
+                    frame = filter_dataframe(frame, self.config.where_clause)
+                return frame
         finally:
             await engine.dispose()
-

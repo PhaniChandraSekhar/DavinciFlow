@@ -3,6 +3,7 @@ from __future__ import annotations
 import pandas as pd
 from pydantic import BaseModel
 
+from app.services.dataframe_filters import filter_dataframe
 from app.steps.base import BaseStep
 
 
@@ -22,5 +23,4 @@ class FilterRowsStep(BaseStep):
         frame = self.ensure_dataframe(df)
         if frame.empty:
             return frame
-        return frame.query(self.config.expression)
-
+        return filter_dataframe(frame, self.config.expression)

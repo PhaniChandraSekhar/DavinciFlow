@@ -9,6 +9,7 @@ import pandas as pd
 from pydantic import BaseModel
 
 from app.models.connection import Connection
+from app.services.connection_crypto import decrypt_connection_config
 
 
 class BaseStep(ABC):
@@ -76,7 +77,7 @@ class BaseStep(ABC):
             raise ValueError(f"Connection '{connection_id}' not found")
 
         return {
-            **(model.config or {}),
+            **decrypt_connection_config(model.config or {}),
             "id": model.id,
             "name": model.name,
             "type": model.type,

@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.models.pipeline import Pipeline, PipelineRun
 from app.schemas.execution import RunCreate, RunList, RunRead
-from app.services.auth import ensure_websocket_auth
+from app.services.auth import ensure_websocket_auth, require_session_auth
 from app.services.execution_engine import execution_broker, execution_engine
 
 router = APIRouter(tags=["execution"])
@@ -18,6 +18,7 @@ async def run_pipeline(
     pipeline_id: int,
     payload: RunCreate,
     db: AsyncSession = Depends(get_db),
+    _: None = Depends(require_session_auth),
 ) -> RunRead:
     pipeline = await db.get(Pipeline, pipeline_id)
     if pipeline is None:
@@ -27,7 +28,11 @@ async def run_pipeline(
 
 
 @router.get("/api/runs/{run_id}", response_model=RunRead)
-async def get_run(run_id: int, db: AsyncSession = Depends(get_db)) -> RunRead:
+async def get_run(
+    run_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: None = Depends(require_session_auth),
+) -> RunRead:
     run = await db.get(PipelineRun, run_id)
     if run is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Run not found")
@@ -39,6 +44,7 @@ async def list_runs(
     pipeline_id: int | None = None,
     limit: int = 50,
     db: AsyncSession = Depends(get_db),
+    _: None = Depends(require_session_auth),
 ) -> RunList:
     safe_limit = max(1, min(limit, 200))
     statement = select(PipelineRun).order_by(PipelineRun.started_at.desc()).limit(safe_limit)

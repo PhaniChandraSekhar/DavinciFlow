@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from hmac import compare_digest
-
 from fastapi import HTTPException, Request, WebSocket, status
 
 from app.config import get_settings
+from app.services.passwords import is_password_hash, verify_password
 
 SESSION_USER_KEY = "authenticated_user"
 
@@ -12,9 +11,11 @@ SESSION_USER_KEY = "authenticated_user"
 def authenticate_admin(username: str, password: str) -> bool:
     settings = get_settings()
     expected_password = settings.admin_password or ""
-    return compare_digest(username, settings.admin_username) and compare_digest(
-        password, expected_password
-    )
+    if username != settings.admin_username:
+        return False
+    if not is_password_hash(expected_password) and settings.environment.strip().lower() != "development":
+        return False
+    return verify_password(password, expected_password)
 
 
 def get_authenticated_username(connection: Request | WebSocket) -> str | None:

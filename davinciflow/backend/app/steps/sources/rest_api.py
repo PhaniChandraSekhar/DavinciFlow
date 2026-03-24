@@ -6,6 +6,7 @@ import httpx
 import pandas as pd
 from pydantic import BaseModel, Field
 
+from app.services.security import validate_outbound_url
 from app.steps.base import BaseStep
 
 
@@ -80,7 +81,7 @@ class RestAPIStep(BaseStep):
     ) -> Any:
         response = await client.request(
             method=self.config.method.upper(),
-            url=self.config.url,
+            url=validate_outbound_url(self.config.url),
             headers=headers,
             params=params,
         )
@@ -99,4 +100,3 @@ class RestAPIStep(BaseStep):
                     ]
             return [payload]
         return [{"value": payload}]
-

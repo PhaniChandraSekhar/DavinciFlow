@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from secrets import token_urlsafe
 
 from pydantic import AliasChoices, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from app.services.passwords import is_password_hash
 
 
 class Settings(BaseSettings):
@@ -51,6 +54,10 @@ class Settings(BaseSettings):
         default="davinciflow_session",
         validation_alias=AliasChoices("DAVINCIFLOW_SESSION_COOKIE_NAME", "SESSION_COOKIE_NAME"),
     )
+    encryption_key: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("DAVINCIFLOW_ENCRYPTION_KEY", "ENCRYPTION_KEY"),
+    )
     session_max_age_seconds: int = Field(
         default=60 * 60 * 12,
         validation_alias=AliasChoices("DAVINCIFLOW_SESSION_MAX_AGE_SECONDS", "SESSION_MAX_AGE_SECONDS"),
@@ -59,12 +66,14 @@ class Settings(BaseSettings):
         default=None,
         validation_alias=AliasChoices("DAVINCIFLOW_SECURE_COOKIES", "SECURE_COOKIES"),
     )
+    runtime_session_secret: str = Field(default_factory=lambda: token_urlsafe(32))
 
     model_config = SettingsConfigDict(
         env_file=(".env", "../.env", "../../.env"),
         env_file_encoding="utf-8",
         enable_decoding=False,
         extra="ignore",
+        populate_by_name=True,
     )
 
     @field_validator("cors_origins", mode="before")
@@ -91,6 +100,13 @@ class Settings(BaseSettings):
                 raise ValueError("DAVINCIFLOW_SESSION_SECRET must be configured when auth is enabled")
             if "*" in self.cors_origins:
                 raise ValueError("CORS_ORIGINS cannot contain '*' when cookie auth is enabled")
+            if environment != "development" and not is_password_hash(self.admin_password):
+                raise ValueError("DAVINCIFLOW_ADMIN_PASSWORD must be a password hash outside development")
+
+        if not self.encryption_key:
+            if environment != "development":
+                raise ValueError("DAVINCIFLOW_ENCRYPTION_KEY must be configured outside development")
+            self.encryption_key = self.session_secret or self.runtime_session_secret
 
         return self
 

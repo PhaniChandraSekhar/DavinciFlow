@@ -9,6 +9,7 @@ from app.models.connection import Connection
 from app.models.pipeline import PipelineRun
 from app.routers import execution as execution_router
 from app.schemas.connection import REDACTED_SECRET
+from app.services.connection_crypto import ENCRYPTED_PREFIX, decrypt_connection_config
 
 
 def test_health_endpoint(client) -> None:
@@ -229,8 +230,11 @@ def test_connection_responses_redact_secrets(client) -> None:
 
     stored = asyncio.run(fetch_connection())
     assert stored is not None
-    assert stored.config["password"] == "super-secret"
-    assert stored.config["api_key"] == "key-123"
+    assert stored.config["password"].startswith(ENCRYPTED_PREFIX)
+    assert stored.config["password"] != "super-secret"
+    assert stored.config["api_key"].startswith(ENCRYPTED_PREFIX)
+    assert decrypt_connection_config(stored.config)["password"] == "super-secret"
+    assert decrypt_connection_config(stored.config)["api_key"] == "key-123"
 
 
 def test_connection_update_preserves_redacted_secret(client) -> None:
@@ -273,4 +277,5 @@ def test_connection_update_preserves_redacted_secret(client) -> None:
     stored = asyncio.run(fetch_connection())
     assert stored is not None
     assert stored.config["host"] == "api.internal.example.com"
-    assert stored.config["token"] == "token-123"
+    assert stored.config["token"].startswith(ENCRYPTED_PREFIX)
+    assert decrypt_connection_config(stored.config)["token"] == "token-123"

@@ -60,6 +60,7 @@ Visual ELT pipeline designer for on-premise and edge environments.
 - `AUTH_ENABLED=true` protects all `/api/*` routes except `/api/auth/*`.
 - `ADMIN_USERNAME` and `ADMIN_PASSWORD` define the bootstrap admin login.
 - `SESSION_SECRET` signs the session cookie and must be unique in every deployed environment.
+- `ENCRYPTION_KEY` encrypts sensitive connection config values before they are stored in the database.
 - `SECURE_COOKIES=true` should be used behind HTTPS in production.
 - When auth is enabled, `CORS_ORIGINS` must be an explicit allowlist, not `*`.
 

@@ -13,18 +13,20 @@ from app.schemas.connection import (
     merge_connection_config,
     redact_connection_config,
 )
+from app.services.connection_crypto import decrypt_connection_config, encrypt_connection_config
 
 router = APIRouter(prefix="/api/connections", tags=["connections"])
 
 
 def serialize_connection(connection: Connection) -> ConnectionRead:
+    decrypted_config = decrypt_connection_config(connection.config or {})
     return ConnectionRead.model_validate(
         {
             "id": connection.id,
             "name": connection.name,
             "type": connection.type,
             "description": connection.description,
-            "config": redact_connection_config(connection.config or {}),
+            "config": redact_connection_config(decrypted_config),
             "created_at": connection.created_at,
             "updated_at": connection.updated_at,
         }
@@ -42,7 +44,9 @@ async def list_connections(db: AsyncSession = Depends(get_db)) -> list[Connectio
 async def create_connection(
     payload: ConnectionCreate, db: AsyncSession = Depends(get_db)
 ) -> ConnectionRead:
-    connection = Connection(**payload.model_dump())
+    payload_data = payload.model_dump()
+    payload_data["config"] = encrypt_connection_config(payload_data.get("config") or {})
+    connection = Connection(**payload_data)
     db.add(connection)
     try:
         await db.commit()
@@ -72,7 +76,9 @@ async def update_connection(
     if connection is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Connection not found")
     payload_data = payload.model_dump()
-    payload_data["config"] = merge_connection_config(connection.config or {}, payload_data.get("config") or {})
+    decrypted_existing_config = decrypt_connection_config(connection.config or {})
+    merged_config = merge_connection_config(decrypted_existing_config, payload_data.get("config") or {})
+    payload_data["config"] = encrypt_connection_config(merged_config)
     for field, value in payload_data.items():
         setattr(connection, field, value)
     try:

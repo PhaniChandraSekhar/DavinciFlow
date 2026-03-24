@@ -5,6 +5,7 @@ import asyncio
 import pandas as pd
 from pydantic import BaseModel
 
+from app.services.security import resolve_safe_path
 from app.steps.base import BaseStep
 
 
@@ -23,10 +24,10 @@ class CSVInputStep(BaseStep):
     ConfigModel = CSVInputConfig
 
     async def execute(self, df: pd.DataFrame | None) -> pd.DataFrame:
+        file_path = resolve_safe_path(self.config.file_path, purpose="read")
         return await asyncio.to_thread(
             pd.read_csv,
-            self.config.file_path,
+            str(file_path),
             sep=self.config.delimiter,
             encoding=self.config.encoding,
         )
-

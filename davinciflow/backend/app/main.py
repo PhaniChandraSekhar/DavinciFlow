@@ -10,8 +10,9 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.config import get_settings
 from app.database import check_database, init_db
 from app.services.auth import require_session_auth
-settings = get_settings()
 from app.routers import auth, pipelines, connections, execution, steps
+
+settings = get_settings()
 
 
 @asynccontextmanager
@@ -36,7 +37,7 @@ app.add_middleware(
 )
 app.add_middleware(
     SessionMiddleware,
-    secret_key=settings.session_secret or "davinciflow-dev-session-secret",
+    secret_key=settings.session_secret or settings.runtime_session_secret,
     same_site="lax",
     https_only=bool(settings.secure_cookies),
     max_age=settings.session_max_age_seconds,
@@ -48,7 +49,7 @@ protected = [Depends(require_session_auth)]
 app.include_router(auth.router)
 app.include_router(pipelines.router, dependencies=protected)
 app.include_router(connections.router, dependencies=protected)
-app.include_router(execution.router, dependencies=protected)
+app.include_router(execution.router)
 app.include_router(steps.router, dependencies=protected)
 
 @app.get("/")

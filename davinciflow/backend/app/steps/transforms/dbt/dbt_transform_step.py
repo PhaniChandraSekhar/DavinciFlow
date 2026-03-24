@@ -2,13 +2,19 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 import subprocess
 from pathlib import Path
 
 import pandas as pd
 from pydantic import BaseModel, Field
 
+from app.services.security import quote_identifier_path, resolve_safe_path
 from app.steps.base import BaseStep
+
+DBT_TIMEOUT_SECONDS = 300
+DBT_TARGET_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_-]{0,63}$")
+DBT_SELECTOR_PATTERN = re.compile(r"^[A-Za-z0-9_:@*+,\-./ ]{0,256}$")
 
 
 class DbtTransformConfig(BaseModel):
@@ -50,14 +56,29 @@ class DbtTransformStep(BaseStep):
         return await asyncio.to_thread(self._sync_run_dbt)
 
     def _sync_run_dbt(self) -> pd.DataFrame:
-        project_dir = Path(self.config.dbt_project_dir)
-        profiles_dir = Path(self.config.profiles_dir or self.config.dbt_project_dir)
+        project_dir = resolve_safe_path(self.config.dbt_project_dir, purpose="read", allow_directory=True)
+        profiles_dir = resolve_safe_path(
+            self.config.profiles_dir or self.config.dbt_project_dir,
+            purpose="read",
+            allow_directory=True,
+        )
 
-        if not project_dir.exists():
-            raise FileNotFoundError(f"dbt project dir not found: {project_dir}")
+        if not (project_dir / "dbt_project.yml").exists():
+            raise FileNotFoundError(f"dbt project config not found: {project_dir / 'dbt_project.yml'}")
+        if not (profiles_dir / "profiles.yml").exists():
+            raise FileNotFoundError(f"dbt profiles config not found: {profiles_dir / 'profiles.yml'}")
+        if not DBT_TARGET_PATTERN.fullmatch(self.config.target):
+            raise ValueError("Invalid dbt target value")
+        if self.config.select and not DBT_SELECTOR_PATTERN.fullmatch(self.config.select):
+            raise ValueError("Invalid dbt --select expression")
 
         elt_python = Path(self.get_elt_python())
         dbt_executable = elt_python.with_name("dbt")
+        duckdb_path = (
+            resolve_safe_path(self.config.duckdb_path, purpose="write")
+            if self.config.duckdb_path
+            else resolve_safe_path("/tmp/davinciflow_cache.duckdb", purpose="write")
+        )
         cmd = [
             str(dbt_executable if dbt_executable.exists() else elt_python), *(["run"] if dbt_executable.exists() else ["-m", "dbt.cli.main", "run"]),
             "--project-dir", str(project_dir),
@@ -67,16 +88,20 @@ class DbtTransformStep(BaseStep):
         if self.config.select:
             cmd += ["--select", self.config.select]
 
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            env={
-                **os.environ,
-                "PYTHONUTF8": "1",
-                "DAVINCIFLOW_DUCKDB_PATH": self.config.duckdb_path or "/tmp/davinciflow_cache.duckdb",
-            },
-        )
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=DBT_TIMEOUT_SECONDS,
+                env={
+                    **os.environ,
+                    "PYTHONUTF8": "1",
+                    "DAVINCIFLOW_DUCKDB_PATH": str(duckdb_path),
+                },
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise RuntimeError(f"dbt run timed out after {DBT_TIMEOUT_SECONDS} seconds") from exc
 
         if result.returncode != 0:
             raise RuntimeError(
@@ -86,7 +111,7 @@ class DbtTransformStep(BaseStep):
         # If caller wants the output as a DataFrame, query it
         if self.config.output_model and self.config.duckdb_path:
             return self._read_duckdb_model(
-                db_path=self.config.duckdb_path,
+                db_path=str(duckdb_path),
                 model=self.config.output_model,
             )
 
@@ -99,9 +124,10 @@ class DbtTransformStep(BaseStep):
         except ImportError as e:
             raise RuntimeError("duckdb not installed. Add 'duckdb>=0.10.0' to requirements.txt") from e
 
-        con = duckdb.connect(db_path, read_only=True)
+        safe_db_path = resolve_safe_path(db_path, purpose="read")
+        con = duckdb.connect(str(safe_db_path), read_only=True)
         try:
-            return con.execute(f"SELECT * FROM {model}").df()
+            return con.execute(f"SELECT * FROM {quote_identifier_path(model)}").df()
         finally:
             con.close()
 
