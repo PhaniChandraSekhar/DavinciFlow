@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.models.pipeline import Pipeline, PipelineRun
 from app.schemas.execution import RunCreate, RunList, RunRead
+from app.services.auth import ensure_websocket_auth
 from app.services.execution_engine import execution_broker, execution_engine
 
 router = APIRouter(tags=["execution"])
@@ -50,6 +51,8 @@ async def list_runs(
 
 @router.websocket("/api/runs/{run_id}/logs/ws")
 async def run_logs_ws(websocket: WebSocket, run_id: int) -> None:
+    if not await ensure_websocket_auth(websocket):
+        return
     await websocket.accept()
     queue = await execution_broker.subscribe(run_id)
     try:

@@ -1,4 +1,4 @@
-import { CircleDot, DatabaseZap, Play, Save, Settings2, Workflow } from 'lucide-react';
+import { CircleDot, DatabaseZap, LogOut, Play, Save, Settings2, Workflow } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { navigateTo } from '../../utils/navigation';
 
@@ -8,6 +8,8 @@ interface TopBarProps {
   onPipelineNameChange?: (value: string) => void;
   onSave?: () => void | Promise<void>;
   onRun?: () => void | Promise<void>;
+  authUsername?: string;
+  onLogout?: () => void | Promise<void>;
   isDirty?: boolean;
   isRunning?: boolean;
   canRun?: boolean;
@@ -19,6 +21,8 @@ export default function TopBar({
   onPipelineNameChange,
   onSave,
   onRun,
+  authUsername,
+  onLogout,
   isDirty = false,
   isRunning = false,
   canRun = false
@@ -109,10 +113,34 @@ export default function TopBar({
               <Play className="h-4 w-4" />
               {isRunning ? 'Running' : 'Run'}
             </button>
+            {onLogout ? (
+              <button
+                type="button"
+                onClick={() => void onLogout()}
+                className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-300 transition hover:border-slate-500 hover:text-white"
+              >
+                <span className="hidden text-xs uppercase tracking-[0.18em] text-slate-400 lg:inline">
+                  {authUsername ?? 'Session'}
+                </span>
+                <LogOut className="h-4 w-4" />
+              </button>
+            ) : null}
           </div>
         </div>
       ) : (
         <div className="flex items-center gap-3 text-right">
+          {onLogout ? (
+            <button
+              type="button"
+              onClick={() => void onLogout()}
+              className="mr-2 flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-300 transition hover:border-slate-500 hover:text-white"
+            >
+              <span className="hidden text-xs uppercase tracking-[0.18em] text-slate-400 lg:inline">
+                {authUsername ?? 'Session'}
+              </span>
+              <LogOut className="h-4 w-4" />
+            </button>
+          ) : null}
           <div>
             <div className="text-sm font-semibold uppercase tracking-[0.24em] text-slate-100">Connection Registry</div>
             <div className="text-xs text-slate-400">Reusable credentials for source and sink steps</div>

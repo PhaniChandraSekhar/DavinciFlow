@@ -46,6 +46,49 @@ def test_readiness_endpoint_returns_503_when_database_unavailable(monkeypatch, c
     assert response.json() == {"status": "error"}
 
 
+def test_auth_session_reports_authenticated_user(client) -> None:
+    response = client.get("/api/auth/session")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "auth_enabled": True,
+        "authenticated": True,
+        "username": "admin",
+    }
+
+
+def test_protected_routes_require_authentication(unauthenticated_client) -> None:
+    response = unauthenticated_client.get("/api/pipelines")
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Authentication required"
+
+
+def test_login_and_logout_flow(unauthenticated_client) -> None:
+    session_response = unauthenticated_client.get("/api/auth/session")
+    assert session_response.status_code == 200
+    assert session_response.json() == {
+        "auth_enabled": True,
+        "authenticated": False,
+        "username": None,
+    }
+
+    login_response = unauthenticated_client.post(
+        "/api/auth/login",
+        json={"username": "admin", "password": "test-password"},
+    )
+    assert login_response.status_code == 200
+    assert login_response.json()["authenticated"] is True
+
+    post_login_response = unauthenticated_client.get("/api/auth/session")
+    assert post_login_response.status_code == 200
+    assert post_login_response.json()["authenticated"] is True
+
+    logout_response = unauthenticated_client.delete("/api/auth/session")
+    assert logout_response.status_code == 200
+    assert logout_response.json()["authenticated"] is False
+
+
 def test_steps_endpoint_includes_airbyte_and_dbt(client) -> None:
     response = client.get("/api/steps")
 

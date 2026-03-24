@@ -2,14 +2,16 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, status
+from fastapi import Depends, FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import get_settings
 from app.database import check_database, init_db
+from app.services.auth import require_session_auth
 settings = get_settings()
-from app.routers import pipelines, connections, execution, steps
+from app.routers import auth, pipelines, connections, execution, steps
 
 
 @asynccontextmanager
@@ -32,12 +34,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.session_secret or "davinciflow-dev-session-secret",
+    same_site="lax",
+    https_only=bool(settings.secure_cookies),
+    max_age=settings.session_max_age_seconds,
+    session_cookie=settings.session_cookie_name,
+)
 
 # Routers
-app.include_router(pipelines.router)
-app.include_router(connections.router)
-app.include_router(execution.router)
-app.include_router(steps.router)
+protected = [Depends(require_session_auth)]
+app.include_router(auth.router)
+app.include_router(pipelines.router, dependencies=protected)
+app.include_router(connections.router, dependencies=protected)
+app.include_router(execution.router, dependencies=protected)
+app.include_router(steps.router, dependencies=protected)
 
 @app.get("/")
 async def root() -> dict[str, str]:

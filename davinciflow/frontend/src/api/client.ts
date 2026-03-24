@@ -9,6 +9,7 @@ const baseURL = configuredBase
 
 export const apiClient = axios.create({
   baseURL,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json'
@@ -23,7 +24,18 @@ apiClient.interceptors.request.use((config) => {
 
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => Promise.reject(error)
+  (error) => {
+    if (
+      typeof window !== 'undefined' &&
+      axios.isAxiosError(error) &&
+      error.response?.status === 401 &&
+      !String(error.config?.url ?? '').startsWith('/auth/')
+    ) {
+      window.dispatchEvent(new Event('davinciflow:auth-required'));
+    }
+
+    return Promise.reject(error);
+  }
 );
 
 export function extractApiError(error: unknown, fallbackMessage: string): Error {

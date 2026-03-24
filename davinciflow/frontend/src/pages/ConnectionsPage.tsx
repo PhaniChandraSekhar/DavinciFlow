@@ -6,7 +6,12 @@ import TopBar from '../components/layout/TopBar';
 import { getConnections, saveConnection, deleteConnection } from '../api/connections';
 import type { Connection, ConnectionType } from '../types/connection';
 
-export default function ConnectionsPage() {
+interface ConnectionsPageProps {
+  authUsername?: string;
+  onLogout?: () => void | Promise<void>;
+}
+
+export default function ConnectionsPage({ authUsername, onLogout }: ConnectionsPageProps) {
   const [connections, setConnections] = useState<Connection[]>([]);
   const [editing, setEditing] = useState<Connection | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -61,7 +66,7 @@ export default function ConnectionsPage() {
 
   return (
     <AppLayout
-      topBar={<TopBar mode="connections" />}
+      topBar={<TopBar mode="connections" authUsername={authUsername} onLogout={onLogout} />}
       sidebar={<Sidebar />}
     >
       <div className="p-6">

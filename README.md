@@ -42,7 +42,8 @@ Visual ELT pipeline designer for on-premise and edge environments.
 2. Copy the environment template with `cp .env.example .env`.
 3. Start the stack with `docker compose up --build`.
 4. Open `http://localhost:3000` in your browser.
-5. Create your first pipeline on the visual canvas and save it.
+5. Sign in with the admin credentials from `.env`.
+6. Create your first pipeline on the visual canvas and save it.
 
 ## Features
 
@@ -52,6 +53,15 @@ Visual ELT pipeline designer for on-premise and edge environments.
 - 6 transform models including SQL, Python, mapping, aggregation, enrichment, and rule-based transforms.
 - Execution engine for versioned pipeline runs with logs and run state tracking.
 - Connection manager for reusable, secret-backed integration definitions.
+- Cookie-based admin authentication for protected API and UI access.
+
+## Runtime Configuration
+
+- `AUTH_ENABLED=true` protects all `/api/*` routes except `/api/auth/*`.
+- `ADMIN_USERNAME` and `ADMIN_PASSWORD` define the bootstrap admin login.
+- `SESSION_SECRET` signs the session cookie and must be unique in every deployed environment.
+- `SECURE_COOKIES=true` should be used behind HTTPS in production.
+- When auth is enabled, `CORS_ORIGINS` must be an explicit allowlist, not `*`.
 
 ## Tech Stack
 
@@ -94,12 +104,15 @@ class NormalizeCustomerStep(BaseStep):
 ## API Endpoints
 
 - `GET /health` - liveness probe for local development and container health checks.
-- `GET /api/v1/pipelines` - list available pipelines.
-- `POST /api/v1/pipelines` - create a new pipeline draft.
-- `GET /api/v1/connections` - list registered source and sink connections.
-- `POST /api/v1/connections` - create a reusable connection profile.
-- `GET /api/v1/pipeline-runs` - inspect run history.
-- `POST /api/v1/pipeline-runs` - enqueue or record a pipeline run.
+- `GET /health/ready` - readiness probe that verifies database connectivity.
+- `GET /api/auth/session` - inspect current authentication state.
+- `POST /api/auth/login` - create an authenticated admin session.
+- `GET /api/pipelines` - list available pipelines.
+- `POST /api/pipelines` - create a new pipeline draft.
+- `GET /api/connections` - list registered source and sink connections with secrets redacted.
+- `POST /api/connections` - create a reusable connection profile.
+- `GET /api/runs` - inspect recent pipeline run history.
+- `POST /api/pipelines/{pipeline_id}/run` - enqueue a pipeline run.
 
 ## Contributing
 

@@ -15,7 +15,12 @@ import { getPipeline, getPipelines, savePipeline } from '../api/pipelines';
 import type { Pipeline } from '../types/pipeline';
 import { useExecutionStore } from '../store/executionStore';
 
-export default function DesignerPage() {
+interface DesignerPageProps {
+  authUsername?: string;
+  onLogout?: () => void | Promise<void>;
+}
+
+export default function DesignerPage({ authUsername, onLogout }: DesignerPageProps) {
   const nodes = usePipelineStore((s) => s.nodes);
   const edges = usePipelineStore((s) => s.edges);
   const pipelineName = usePipelineStore((s) => s.pipelineName);
@@ -122,6 +127,8 @@ export default function DesignerPage() {
             isDirty={isDirty}
             isRunning={isRunning}
             canRun={nodes.length > 0 && pipelineName.trim().length > 0}
+            authUsername={authUsername}
+            onLogout={onLogout}
           />
         }
         sidebar={
