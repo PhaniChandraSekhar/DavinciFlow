@@ -12,7 +12,7 @@ const sectionMeta = [
 ] as const;
 
 export default function StepPalette() {
-  const { data, isLoading } = useStepLibrary();
+  const { data, error, isLoading } = useStepLibrary();
   const loadTemplate = usePipelineStore((s) => s.loadTemplate);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     sources: true,
@@ -71,7 +71,13 @@ export default function StepPalette() {
           </div>
         ) : null}
 
-        {!isLoading &&
+        {!isLoading && error ? (
+          <div className="rounded-2xl border border-rose-500/30 bg-rose-950/30 px-4 py-4 text-sm text-rose-200">
+            {error instanceof Error ? error.message : 'Failed to load step library.'}
+          </div>
+        ) : null}
+
+        {!isLoading && !error &&
           sectionMeta.map((section) => {
             const steps = (data?.[section.key] ?? []) as StepDefinition[];
             const isOpen = openSections[section.key];

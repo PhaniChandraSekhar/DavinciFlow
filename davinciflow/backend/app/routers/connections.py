@@ -7,16 +7,35 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.connection import Connection
-from app.schemas.connection import ConnectionCreate, ConnectionRead
+from app.schemas.connection import (
+    ConnectionCreate,
+    ConnectionRead,
+    merge_connection_config,
+    redact_connection_config,
+)
 
 router = APIRouter(prefix="/api/connections", tags=["connections"])
+
+
+def serialize_connection(connection: Connection) -> ConnectionRead:
+    return ConnectionRead.model_validate(
+        {
+            "id": connection.id,
+            "name": connection.name,
+            "type": connection.type,
+            "description": connection.description,
+            "config": redact_connection_config(connection.config or {}),
+            "created_at": connection.created_at,
+            "updated_at": connection.updated_at,
+        }
+    )
 
 
 @router.get("", response_model=list[ConnectionRead])
 async def list_connections(db: AsyncSession = Depends(get_db)) -> list[ConnectionRead]:
     result = await db.execute(select(Connection).order_by(Connection.created_at.desc()))
     items = result.scalars().all()
-    return [ConnectionRead.model_validate(item) for item in items]
+    return [serialize_connection(item) for item in items]
 
 
 @router.post("", response_model=ConnectionRead, status_code=status.HTTP_201_CREATED)
@@ -34,7 +53,7 @@ async def create_connection(
             detail="Connection name already exists",
         ) from exc
     await db.refresh(connection)
-    return ConnectionRead.model_validate(connection)
+    return serialize_connection(connection)
 
 
 @router.get("/{connection_id}", response_model=ConnectionRead)
@@ -42,7 +61,7 @@ async def get_connection(connection_id: int, db: AsyncSession = Depends(get_db))
     connection = await db.get(Connection, connection_id)
     if connection is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Connection not found")
-    return ConnectionRead.model_validate(connection)
+    return serialize_connection(connection)
 
 
 @router.put("/{connection_id}", response_model=ConnectionRead)
@@ -52,7 +71,9 @@ async def update_connection(
     connection = await db.get(Connection, connection_id)
     if connection is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Connection not found")
-    for field, value in payload.model_dump().items():
+    payload_data = payload.model_dump()
+    payload_data["config"] = merge_connection_config(connection.config or {}, payload_data.get("config") or {})
+    for field, value in payload_data.items():
         setattr(connection, field, value)
     try:
         await db.commit()
@@ -63,7 +84,7 @@ async def update_connection(
             detail="Connection name already exists",
         ) from exc
     await db.refresh(connection)
-    return ConnectionRead.model_validate(connection)
+    return serialize_connection(connection)
 
 
 @router.delete("/{connection_id}", status_code=status.HTTP_200_OK)

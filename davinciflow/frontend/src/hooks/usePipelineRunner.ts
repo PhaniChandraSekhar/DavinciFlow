@@ -103,7 +103,7 @@ export function usePipelineRunner() {
             : `${parsed.data.step_name} ${parsed.data.status}`,
           step_id: parsed.data.step_id,
           step_status:
-            parsed.data.status === 'completed'
+            parsed.data.status === 'completed' || parsed.data.status === 'success'
               ? 'success'
               : parsed.data.status === 'failed'
                 ? 'failed'
@@ -119,12 +119,23 @@ export function usePipelineRunner() {
 
       if ('event' in parsed && parsed.event === 'status' && parsed.status !== 'running') {
         void (async () => {
-          const finalRun = await getRun(String(parsed.run_id));
-          if (parsed.status === 'completed') {
-            completeRun(finalRun);
-            usePipelineStore.getState().setRunStatus(pipelineId, 'success');
-          } else {
-            failRun(finalRun);
+          try {
+            const finalRun = await getRun(String(parsed.run_id));
+            if (parsed.status === 'completed') {
+              completeRun(finalRun);
+              usePipelineStore.getState().setRunStatus(pipelineId, 'success');
+            } else {
+              failRun(finalRun);
+              usePipelineStore.getState().setRunStatus(pipelineId, 'failed');
+            }
+          } catch (error) {
+            appendLog({
+              id: crypto.randomUUID(),
+              run_id: run.id,
+              timestamp: new Date().toISOString(),
+              level: 'ERROR',
+              message: error instanceof Error ? error.message : 'Failed to refresh final run status.',
+            });
             usePipelineStore.getState().setRunStatus(pipelineId, 'failed');
           }
           socket.close();
@@ -133,6 +144,15 @@ export function usePipelineRunner() {
     };
 
     socket.addEventListener('message', onMessage);
+    socket.addEventListener('error', () => {
+      appendLog({
+        id: crypto.randomUUID(),
+        run_id: run.id,
+        timestamp: new Date().toISOString(),
+        level: 'ERROR',
+        message: 'Run log stream disconnected unexpectedly.',
+      });
+    });
   }
 
   return {

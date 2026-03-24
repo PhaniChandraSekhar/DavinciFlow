@@ -1,23 +1,12 @@
-import { apiClient } from './client';
-import type { Connection } from '../types/connection';
-
-const STORAGE_KEY = 'davinciflow:connections';
-
-function readConnections() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  return raw ? (JSON.parse(raw) as Connection[]) : [];
-}
-
-function writeConnections(connections: Connection[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(connections));
-}
+import { apiClient, extractApiError } from './client';
+import type { Connection, ConnectionConfigValue } from '../types/connection';
 
 interface BackendConnection {
   id: string | number;
   name: string;
   type: Connection['type'];
   description?: string | null;
-  config: Record<string, string | number>;
+  config: Record<string, ConnectionConfigValue>;
   created_at: string;
   updated_at: string;
 }
@@ -27,6 +16,7 @@ function toFrontendConnection(connection: BackendConnection): Connection {
     id: String(connection.id),
     name: connection.name,
     type: connection.type,
+    description: connection.description ?? null,
     config: connection.config ?? {},
     created_at: connection.created_at,
     updated_at: connection.updated_at,
@@ -37,47 +27,33 @@ export async function getConnections() {
   try {
     const response = await apiClient.get<BackendConnection[]>('/connections');
     return response.data.map(toFrontendConnection);
-  } catch {
-    return readConnections().sort((a, b) => a.name.localeCompare(b.name));
+  } catch (error) {
+    throw extractApiError(error, 'Failed to load connections.');
   }
 }
 
 export async function saveConnection(connection: Omit<Connection, 'created_at' | 'updated_at'>) {
-  const existing = connection.id ? readConnections().find((item) => item.id === connection.id) : undefined;
-  const payload: Connection = {
-    ...connection,
-    created_at: existing?.created_at ?? new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  };
-  const backendPayload = {
-    name: payload.name,
-    type: payload.type,
-    description: null,
-    config: payload.config,
+  const payload = {
+    name: connection.name,
+    type: connection.type,
+    description: connection.description ?? null,
+    config: connection.config,
   };
 
   try {
-    const response = payload.id
-      ? await apiClient.put<BackendConnection>(`/connections/${payload.id}`, backendPayload)
-      : await apiClient.post<BackendConnection>('/connections', backendPayload);
+    const response = connection.id
+      ? await apiClient.put<BackendConnection>(`/connections/${connection.id}`, payload)
+      : await apiClient.post<BackendConnection>('/connections', payload);
     return toFrontendConnection(response.data);
-  } catch {
-    const connections = readConnections();
-    const localId = payload.id ?? crypto.randomUUID();
-    const localPayload = { ...payload, id: localId };
-    const next = connections.some((item) => item.id === localId)
-      ? connections.map((item) => (item.id === localId ? localPayload : item))
-      : [...connections, localPayload];
-
-    writeConnections(next);
-    return localPayload;
+  } catch (error) {
+    throw extractApiError(error, 'Failed to save connection.');
   }
 }
 
 export async function deleteConnection(id: string) {
   try {
     await apiClient.delete(`/connections/${id}`);
-  } catch {
-    writeConnections(readConnections().filter((connection) => connection.id !== id));
+  } catch (error) {
+    throw extractApiError(error, 'Failed to delete connection.');
   }
 }

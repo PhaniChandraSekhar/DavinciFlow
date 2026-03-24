@@ -1,4 +1,4 @@
-import { apiClient } from './client';
+import { apiClient, extractApiError } from './client';
 import type { StepCategory, StepDefinition } from '../types/pipeline';
 
 export interface StepLibrary {
@@ -292,7 +292,7 @@ export async function getStepLibrary() {
   try {
     const response = await apiClient.get<StepLibrary>('/steps');
     return response.data;
-  } catch {
-    return FALLBACK_LIBRARY;
+  } catch (error) {
+    throw extractApiError(error, 'Failed to load step library.');
   }
 }

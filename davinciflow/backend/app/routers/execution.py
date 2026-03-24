@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.pipeline import Pipeline, PipelineRun
-from app.schemas.execution import RunCreate, RunRead
+from app.schemas.execution import RunCreate, RunList, RunRead
 from app.services.execution_engine import execution_broker, execution_engine
 
 router = APIRouter(tags=["execution"])
@@ -32,6 +33,21 @@ async def get_run(run_id: int, db: AsyncSession = Depends(get_db)) -> RunRead:
     return RunRead.model_validate(run)
 
 
+@router.get("/api/runs", response_model=RunList)
+async def list_runs(
+    pipeline_id: int | None = None,
+    limit: int = 50,
+    db: AsyncSession = Depends(get_db),
+) -> RunList:
+    safe_limit = max(1, min(limit, 200))
+    statement = select(PipelineRun).order_by(PipelineRun.started_at.desc()).limit(safe_limit)
+    if pipeline_id is not None:
+        statement = statement.where(PipelineRun.pipeline_id == pipeline_id)
+    result = await db.execute(statement)
+    items = result.scalars().all()
+    return RunList(items=[RunRead.model_validate(item) for item in items], total=len(items))
+
+
 @router.websocket("/api/runs/{run_id}/logs/ws")
 async def run_logs_ws(websocket: WebSocket, run_id: int) -> None:
     await websocket.accept()
@@ -55,4 +71,3 @@ async def run_logs_ws(websocket: WebSocket, run_id: int) -> None:
     finally:
         await execution_broker.unsubscribe(run_id, queue)
         await websocket.close()
-

@@ -40,3 +40,7 @@ class RunRead(BaseModel):
     def parse_logs(cls, value: Any) -> list[dict[str, Any]]:
         return value or []
 
+
+class RunList(BaseModel):
+    items: list[RunRead]
+    total: int

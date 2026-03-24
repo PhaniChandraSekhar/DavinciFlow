@@ -10,22 +10,42 @@ export default function ConnectionsPage() {
   const [connections, setConnections] = useState<Connection[]>([]);
   const [editing, setEditing] = useState<Connection | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [pageError, setPageError] = useState<string | null>(null);
+
+  async function refreshConnections() {
+    try {
+      const items = await getConnections();
+      setConnections(items);
+      setPageError(null);
+    } catch (error) {
+      setPageError(error instanceof Error ? error.message : 'Failed to load connections.');
+    }
+  }
 
   useEffect(() => {
-    getConnections().then(setConnections);
+    void refreshConnections();
   }, []);
 
   const handleSave = async (conn: Connection) => {
-    await saveConnection(conn);
-    const updated = await getConnections();
-    setConnections(updated);
-    setIsModalOpen(false);
-    setEditing(null);
+    try {
+      await saveConnection(conn);
+      await refreshConnections();
+      setIsModalOpen(false);
+      setEditing(null);
+      setPageError(null);
+    } catch (error) {
+      setPageError(error instanceof Error ? error.message : 'Failed to save connection.');
+    }
   };
 
   const handleDelete = async (id: string) => {
-    await deleteConnection(id);
-    setConnections((prev) => prev.filter((c) => c.id !== id));
+    try {
+      await deleteConnection(id);
+      await refreshConnections();
+      setPageError(null);
+    } catch (error) {
+      setPageError(error instanceof Error ? error.message : 'Failed to delete connection.');
+    }
   };
 
   const openNew = () => {
@@ -45,6 +65,11 @@ export default function ConnectionsPage() {
       sidebar={<Sidebar />}
     >
       <div className="p-6">
+        {pageError ? (
+          <div className="mb-4 rounded-xl border border-rose-500/30 bg-rose-950/40 px-4 py-3 text-sm text-rose-200">
+            {pageError}
+          </div>
+        ) : null}
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-xl font-semibold text-slate-100">Connections</h1>
           <button
@@ -133,11 +158,11 @@ interface ConnectionModalProps {
 function ConnectionModal({ connection, onSave, onClose }: ConnectionModalProps) {
   const [name, setName] = useState(connection.name);
   const [type, setType] = useState<ConnectionType>(connection.type);
-  const [host, setHost] = useState(connection.config.host ?? '');
-  const [port, setPort] = useState(connection.config.port ?? '');
-  const [database, setDatabase] = useState(connection.config.database ?? '');
-  const [username, setUsername] = useState(connection.config.username ?? '');
-  const [password, setPassword] = useState(connection.config.password ?? '');
+  const [host, setHost] = useState(String(connection.config.host ?? ''));
+  const [port, setPort] = useState(String(connection.config.port ?? ''));
+  const [database, setDatabase] = useState(String(connection.config.database ?? ''));
+  const [username, setUsername] = useState(String(connection.config.username ?? ''));
+  const [password, setPassword] = useState(String(connection.config.password ?? ''));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -230,6 +255,9 @@ function ConnectionModal({ connection, onSave, onClose }: ConnectionModalProps) 
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100"
               />
+              <p className="mt-1 text-[11px] text-slate-500">
+                Saved secrets stay masked. Leave the masked value as-is to keep the current secret.
+              </p>
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-2">

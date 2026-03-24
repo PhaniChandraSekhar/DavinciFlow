@@ -25,3 +25,36 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => Promise.reject(error)
 );
+
+export function extractApiError(error: unknown, fallbackMessage: string): Error {
+  if (axios.isAxiosError(error)) {
+    const detail = error.response?.data;
+
+    if (typeof detail === 'string' && detail.trim()) {
+      return new Error(detail);
+    }
+
+    if (detail && typeof detail === 'object') {
+      const detailMessage =
+        'detail' in detail && typeof detail.detail === 'string'
+          ? detail.detail
+          : 'message' in detail && typeof detail.message === 'string'
+            ? detail.message
+            : null;
+
+      if (detailMessage) {
+        return new Error(detailMessage);
+      }
+    }
+
+    if (error.message) {
+      return new Error(error.message);
+    }
+  }
+
+  if (error instanceof Error) {
+    return error;
+  }
+
+  return new Error(fallbackMessage);
+}

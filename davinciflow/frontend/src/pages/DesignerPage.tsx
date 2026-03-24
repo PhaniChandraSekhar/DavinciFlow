@@ -32,15 +32,21 @@ export default function DesignerPage() {
   const { runPipeline } = usePipelineRunner();
   const [paletteOpen, setPaletteOpen] = useState(true);
   const [savedPipelines, setSavedPipelines] = useState<Pipeline[]>([]);
+  const [pageError, setPageError] = useState<string | null>(null);
 
   async function refreshPipelines() {
-    const items = await getPipelines();
-    for (const item of items) {
-      if (item.id && item.latest_run_status) {
-        setRunStatus(item.id, item.latest_run_status === 'pending' ? 'running' : item.latest_run_status);
+    try {
+      const items = await getPipelines();
+      for (const item of items) {
+        if (item.id && item.latest_run_status) {
+          setRunStatus(item.id, item.latest_run_status === 'pending' ? 'running' : item.latest_run_status);
+        }
       }
+      setSavedPipelines(items);
+      setPageError(null);
+    } catch (error) {
+      setPageError(error instanceof Error ? error.message : 'Failed to load pipelines.');
     }
-    setSavedPipelines(items);
   }
 
   useEffect(() => {
@@ -57,12 +63,18 @@ export default function DesignerPage() {
     setPipeline(saved);
     markSaved();
     await refreshPipelines();
+    setPageError(null);
     return saved;
   };
 
   const handleLoadPipeline = async (id: string) => {
-    const pipeline = await getPipeline(id);
-    setPipeline(pipeline);
+    try {
+      const pipeline = await getPipeline(id);
+      setPipeline(pipeline);
+      setPageError(null);
+    } catch (error) {
+      setPageError(error instanceof Error ? error.message : 'Failed to load pipeline.');
+    }
   };
 
   const handleNewPipeline = () => {
@@ -70,16 +82,25 @@ export default function DesignerPage() {
   };
 
   const handleRun = async () => {
-    const saved = pipelineId ? null : await handleSave();
-    const targetPipelineId = pipelineId ?? saved?.id;
-    if (!targetPipelineId) {
-      return;
+    try {
+      const saved = pipelineId ? null : await handleSave();
+      const targetPipelineId = pipelineId ?? saved?.id;
+      if (!targetPipelineId) {
+        return;
+      }
+      await runPipeline(targetPipelineId);
+      setPageError(null);
+    } catch (error) {
+      setPageError(error instanceof Error ? error.message : 'Failed to run pipeline.');
     }
-    await runPipeline(targetPipelineId);
   };
 
   useSaveShortcut(async () => {
-    await handleSave();
+    try {
+      await handleSave();
+    } catch (error) {
+      setPageError(error instanceof Error ? error.message : 'Failed to save pipeline.');
+    }
   });
 
   return (
@@ -91,7 +112,11 @@ export default function DesignerPage() {
             pipelineName={pipelineName}
             onPipelineNameChange={setPipelineName}
             onSave={async () => {
-              await handleSave();
+              try {
+                await handleSave();
+              } catch (error) {
+                setPageError(error instanceof Error ? error.message : 'Failed to save pipeline.');
+              }
             }}
             onRun={handleRun}
             isDirty={isDirty}
@@ -132,6 +157,11 @@ export default function DesignerPage() {
           </button>
 
           <div className="flex min-w-0 flex-1 flex-col">
+            {pageError ? (
+              <div className="border-b border-rose-500/30 bg-rose-950/40 px-4 py-3 text-sm text-rose-200">
+                {pageError}
+              </div>
+            ) : null}
             <div className="flex-1 overflow-hidden">
               <PipelineCanvas />
             </div>
