@@ -77,7 +77,7 @@ export default function PipelineCanvas() {
 
   const onDragOver = useCallback((event: DragEvent) => {
     event.preventDefault();
-    event.dataTransfer.dropEffect = 'move';
+    event.dataTransfer.dropEffect = 'copy';
   }, []);
 
   // Shared drop handler used by both desktop drag and mobile touch
